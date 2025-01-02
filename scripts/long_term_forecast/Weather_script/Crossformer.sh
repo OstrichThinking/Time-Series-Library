@@ -1,4 +1,4 @@
-export CUDA_VISIBLE_DEVICES=7
+export CUDA_VISIBLE_DEVICES=0,1,2,3
 
 model_name=Crossformer
 
@@ -24,7 +24,8 @@ python -u run.py \
   --d_ff 32 \
   --top_k 5 \
   --des 'Exp' \
-  --itr 1
+  --itr 1 \
+  --use_multi_gpu
 
 python -u run.py \
   --task_name long_term_forecast \
@@ -49,7 +50,8 @@ python -u run.py \
   --top_k 5 \
   --des 'Exp' \
   --itr 1 \
-  --train_epochs 1
+  --train_epochs 1 \
+  --use_multi_gpu
 
 
 python -u run.py \
@@ -74,7 +76,8 @@ python -u run.py \
   --d_ff 32 \
   --top_k 5 \
   --des 'Exp' \
-  --itr 1
+  --itr 1 \
+  --use_multi_gpu
 
 python -u run.py \
   --task_name long_term_forecast \
@@ -99,4 +102,5 @@ python -u run.py \
   --top_k 5 \
   --des 'Exp' \
   --itr 1 \
-  --train_epochs 1
+  --train_epochs 1 \
+  --use_multi_gpu

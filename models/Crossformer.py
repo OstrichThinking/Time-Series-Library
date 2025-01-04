@@ -108,7 +108,7 @@ class Model(nn.Module):
         x_enc, n_vars = self.enc_value_embedding(x_enc.permute(0, 2, 1))
         x_enc = rearrange(x_enc, '(b d) seg_num d_model -> b d seg_num d_model', d=n_vars)
         x_enc += self.enc_pos_embedding
-        x_enc = self.pre_norm(x_enc)
+        x_enc = self.pre_norm(x_enc) 
         enc_out, attns = self.encoder(x_enc)
 
         dec_out = self.head(enc_out[-1].permute(0, 1, 3, 2)).permute(0, 2, 1)

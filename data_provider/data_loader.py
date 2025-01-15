@@ -12,6 +12,7 @@ from data_provider.uea import subsample, interpolate_missing, Normalizer
 from sktime.datasets import load_from_tsfile_to_dataframe
 import warnings
 from utils.augmentation import run_augmentation_single
+from collections import defaultdict
 
 warnings.filterwarnings('ignore')
 
@@ -305,6 +306,205 @@ class Dataset_Custom(Dataset):
 
     def inverse_transform(self, data):
         return self.scaler.inverse_transform(data)
+
+class VitalDBLoader(Dataset):
+    def __init__(self, args, root_path, flag='train', size=None,
+                 features='S', data_path='ETTh1.csv',
+                 target='OT', scale=True, timeenc=0, freq='h', seasonal_patterns=None):
+        # size [seq_len, label_len, pred_len]
+        self.args = args
+
+        self.seq_len = size[0]
+        self.label_len = size[1]
+        self.pred_len = size[2]
+        
+        # info
+        if size == None:
+            self.seq_len = 24 * 4 * 4
+            self.label_len = 24 * 4
+            self.pred_len = 24 * 4
+        else:
+            self.seq_len = size[0]
+            self.label_len = size[1]
+            self.pred_len = size[2]
+        # init
+        assert flag in ['train', 'test', 'val']
+        type_map = {'train': 0, 'val': 1, 'test': 2}
+        self.set_type = type_map[flag]
+
+        self.features = features
+        self.target = target
+        self.scale = scale
+        self.timeenc = timeenc
+        self.freq = freq
+
+        self.root_path = root_path
+        self.data_path = data_path
+
+        # Initialize scalers for each feature to be standardized
+        self.scaler = StandardScaler()
+        self.scaler_bts = StandardScaler()
+        self.scaler_hrs = StandardScaler()
+        self.scaler_dbp = StandardScaler()
+        self.scaler_mbp = StandardScaler()
+        self.scaler_prediction_mbp = StandardScaler()
+
+        self.__read_data__()
+
+    def __read_data__(self):
+
+        if self.set_type == 0:
+            df_raw = pd.read_csv(os.path.join(self.root_path, str(self.data_path) + '_train_data.csv'))
+        elif self.set_type == 1:
+            df_raw = pd.read_csv(os.path.join(self.root_path, str(self.data_path) + '_val_data.csv'))
+        elif self.set_type == 2:
+            df_raw = pd.read_csv(os.path.join(self.root_path, str(self.data_path) + '_test_data.csv'))
+
+        self.__process_data(df_raw)
+
+    def __process_data(self, data):
+
+        # 数据预处理前总数据
+        print("源数据长度：", len(data))
+        label_counts = data['label'].value_counts(normalize=True) * 100
+        print("处理前的Label分布 (%):")
+        print(label_counts)
+
+        # 定义处理序列数据的函数，直接通过空格拆分并转换为浮点数列表，且完成重采样
+        def parse_sequence(sequence_str, skip_rate=0, sample_type='avg_sample'):
+            try:
+                sequence_list = sequence_str.split()
+                sequence_array = np.array([np.nan if x == 'nan' else float(x) for x in sequence_list])
+                mean_value = round(np.nanmean(sequence_array), 2)
+                sequence_array_filled = np.where(np.isnan(sequence_array), mean_value, sequence_array)
+                if np.any(np.isnan(sequence_array_filled)):
+                    return [] 
+                
+                def sliding_window_average(time_series, slide_len):
+                    if slide_len <= 0:
+                        raise ValueError("slide_len must be greater than 0")
+                    
+                    # 存储滑动窗口的平均值
+                    window_averages = []
+                    
+                    # 遍历序列，按滑动窗口大小取值
+                    for i in range(0, len(time_series), slide_len):
+                        # 获取当前窗口的值
+                        window = time_series[i:i + slide_len]
+                        # 计算窗口的平均值并存储
+                        window_avg = round(np.nanmean(window), 2)
+                        window_averages.append(window_avg)
+                    
+                    return window_averages
+
+                if skip_rate > 0: # 如果需要重采样
+                    if sample_type == 'skip_sample':
+                        sequence_array_filled = sequence_array_filled[::skip_rate]
+                    elif sample_type == 'avg_sample': #默认按平均值进行采样
+                        sequence_array_filled = sliding_window_average(sequence_array_filled, skip_rate)
+
+                return sequence_array_filled
+            except ValueError:
+                return [] 
+        
+        examples = defaultdict(list)
+
+        for index, row in data.iterrows():
+            # if index > 100:
+            #     break
+            bts = parse_sequence(row['bts'][1:-1], skip_rate=0, sample_type='skip_sample') #采样周期是：2*skip_rate
+            hrs = parse_sequence(row['hrs'][1:-1], skip_rate=0, sample_type='skip_sample')
+            dbp = parse_sequence(row['dbp'][1:-1], skip_rate=0, sample_type='skip_sample')
+            mbp = parse_sequence(row['mbp'][1:-1], skip_rate=0, sample_type='skip_sample')
+            prediction_mbp = parse_sequence(row['prediction_mbp'][1:-1], skip_rate=0, sample_type='skip_sample')
+            # print(len(bts), len(hrs), len(dbp), len(mbp), len(prediction_mbp))
+            if len(bts) != 450 or len(hrs) != 450 or len(dbp) != 450 or\
+                len(mbp) != 450 or len(prediction_mbp) != 150:
+                continue
+            
+            examples['caseid'].append(row['caseid'])
+            examples['stime'].append(row['stime'])
+            examples['ioh_stime'].append(row['ioh_stime'])
+            examples['ioh_dtime'].append(row['ioh_dtime'])
+            examples['age'].append(row['age']) # np.full(len(bts), row['age'])
+            examples['sex'].append(row['sex'])
+            examples['bmi'].append(row['bmi'])
+            examples['label'].append(row['label'])
+            examples['bts'].append(bts)
+            examples['hrs'].append(hrs)
+            examples['dbp'].append(dbp)
+            examples['mbp'].append(mbp)
+            examples['prediction_mbp'].append(prediction_mbp)
+
+        # 修正统计处理后的样本数量
+        print("处理后的测试样本数量:", len(examples['caseid']))
+
+        # 统计处理后 examples 中 label 列的分布
+        label_counts = pd.Series(examples['label']).value_counts(normalize=True) * 100
+        print("处理后的Label分布 (%):")
+        print(label_counts)
+
+        if self.scale:
+            print("Fitting scalers on training data...")
+
+            self.scaler_bts.fit(examples['bts'])
+            self.scaler_hrs.fit(examples['hrs'])
+            self.scaler_dbp.fit(examples['dbp'])
+            self.scaler_mbp.fit(examples['mbp'])
+            self.scaler_prediction_mbp.fit(examples['prediction_mbp'])
+
+        if self.set_type == 0 and self.scale:
+            print("Transforming data with fitted scalers...")
+            examples['bts'] = self.scaler.transform(examples['bts'])
+            examples['hrs'] = self.scaler.transform(examples['hrs'])
+            examples['dbp'] = self.scaler.transform(examples['dbp'])
+            examples['mbp'] = self.scaler.transform(examples['mbp'])
+            examples['prediction_mbp'] = self.scaler.transform(examples['prediction_mbp'])
+
+        self.data = examples
+
+
+    def __getitem__(self, index):
+        if self.features == 'S': # 单变量时序预测
+            mbp = self.data['mbp'][index]
+            seq_x = np.stack([mbp], axis=1)
+
+        else: # 'MS' 'M' 多变量时序预测
+            # 提取数据中第 index 行的特征
+            bts = self.data['bts'][index]
+            hrs = self.data['hrs'][index]
+            dbp = self.data['dbp'][index]
+            mbp = self.data['mbp'][index]
+            # # 直接将列表转换为 NumPy 数组，并进行 stack 操作
+            # seq_x = np.stack([bts, hrs, dbp, mbp], axis=1)
+
+            # # 将标量特征扩展到与时间序列相同的长度（seq_len）
+            sex = np.full(len(bts), self.data['sex'][index])
+            age = np.full(len(bts), self.data['age'][index])
+            bmi = np.full(len(bts), self.data['bmi'][index])
+            # seq_x = np.stack([sex, age, bmi, bts, hrs, dbp, mbp], axis=1)
+            seq_x = np.stack([bts, hrs, dbp, mbp], axis=1)
+
+        # 预测的目标数据是 prediction_mbp 和当前的 mbp，构建 seq_y
+        prediction_mbp = self.data['prediction_mbp'][index]
+        # seq_y = np.concatenate([mbp, prediction_mbp])[:, np.newaxis] 效果一样
+        seq_y = prediction_mbp[:, np.newaxis]
+
+
+        # 随机生成 seq_x_mark 和 seq_y_mark
+        seq_x_mark = np.random.rand(*seq_x.shape)
+        seq_y_mark = np.random.rand(*seq_y.shape)
+        # seq_x_mark = seq_x
+        # seq_y_mark = seq_y
+        
+        return seq_x, seq_y, seq_x_mark, seq_y_mark
+
+    def __len__(self):
+        return len(self.data['caseid'])
+
+    def inverse_transform(self, data):
+        return self.scaler.inverse_transform(data)
+
 
 
 class Dataset_M4(Dataset):

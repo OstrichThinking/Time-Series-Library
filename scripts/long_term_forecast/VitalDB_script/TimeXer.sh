@@ -1,8 +1,8 @@
-export CUDA_VISIBLE_DEVICES=0,1,2,3
+export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7
 
 model_name=TimeXer
 
-root_path=/home/share/ioh/VitalDB_IOH/
+root_path=/home/fist/ostrich/VitalDB_IOH
 data_path=vitaldb
 
 python -u run.py \
@@ -10,7 +10,7 @@ python -u run.py \
   --is_training 1 \
   --root_path $root_path \
   --data_path $data_path \
-  --model_id vitaldb_450_150_global_standardization \
+  --model_id vitaldb_450_150_without_static_and_medicine \
   --model $model_name \
   --data VitalDB \
   --features MS \
@@ -25,7 +25,9 @@ python -u run.py \
   --des 'Exp' \
   --d_model 256 \
   --d_ff 512 \
-  --batch_size 32 \
   --itr 1 \
+  --batch_size 64 \
   --train_epochs 10 \
-  --use_multi_gpu
+  --num_workers 32 \
+  --use_multi_gpu \
+  --devices 0,1,2

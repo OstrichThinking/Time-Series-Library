@@ -310,7 +310,7 @@ class Dataset_Custom(Dataset):
 class VitalDBLoader(Dataset):
     def __init__(self, args, root_path, flag='train', size=None,
                  features='S', data_path='ETTh1.csv',
-                 target='OT', scale=True, timeenc=0, freq='h', seasonal_patterns=None):
+                 target='OT', scale=True, fitted_scaler=None, timeenc=0, freq='h', seasonal_patterns=None):
         # size [seq_len, label_len, pred_len]
         self.args = args
 
@@ -318,15 +318,6 @@ class VitalDBLoader(Dataset):
         self.label_len = size[1]
         self.pred_len = size[2]
         
-        # info
-        if size == None:
-            self.seq_len = 24 * 4 * 4
-            self.label_len = 24 * 4
-            self.pred_len = 24 * 4
-        else:
-            self.seq_len = size[0]
-            self.label_len = size[1]
-            self.pred_len = size[2]
         # init
         assert flag in ['train', 'test', 'val']
         type_map = {'train': 0, 'val': 1, 'test': 2}
@@ -342,12 +333,13 @@ class VitalDBLoader(Dataset):
         self.data_path = data_path
 
         # Initialize scalers for each feature to be standardized
-        self.scaler = StandardScaler()
         self.scaler_bts = StandardScaler()
         self.scaler_hrs = StandardScaler()
         self.scaler_dbp = StandardScaler()
         self.scaler_mbp = StandardScaler()
         self.scaler_prediction_mbp = StandardScaler()
+        
+        self.fitted_scaler = fitted_scaler
 
         self.__read_data__()
 
@@ -376,10 +368,13 @@ class VitalDBLoader(Dataset):
                 sequence_list = sequence_str.split()
                 sequence_array = np.array([np.nan if x == 'nan' else float(x) for x in sequence_list])
                 mean_value = round(np.nanmean(sequence_array), 2)
+                # 均值填充
                 sequence_array_filled = np.where(np.isnan(sequence_array), mean_value, sequence_array)
+                
                 if np.any(np.isnan(sequence_array_filled)):
                     return [] 
                 
+                # 滑动窗口平均
                 def sliding_window_average(time_series, slide_len):
                     if slide_len <= 0:
                         raise ValueError("slide_len must be greater than 0")
@@ -444,25 +439,32 @@ class VitalDBLoader(Dataset):
         print("处理后的Label分布 (%):")
         print(label_counts)
 
-        if self.scale:
+        
+        if self.scale and self.set_type == 0:
             print("Fitting scalers on training data...")
-
+            # 初始使用训练集拟合标准化 scaler
             self.scaler_bts.fit(examples['bts'])
             self.scaler_hrs.fit(examples['hrs'])
             self.scaler_dbp.fit(examples['dbp'])
             self.scaler_mbp.fit(examples['mbp'])
             self.scaler_prediction_mbp.fit(examples['prediction_mbp'])
+        else :
+            # 测试和验证时，使用拟合好的 scaler
+            self.scaler_bts = self.fitted_scaler['bts']
+            self.scaler_hrs = self.fitted_scaler['hrs']    
+            self.scaler_dbp = self.fitted_scaler['dbp']
+            self.scaler_mbp = self.fitted_scaler['mbp']
+            self.scaler_prediction_mbp = self.fitted_scaler['prediction_mbp']
 
-        if self.set_type == 0 and self.scale:
+        if self.scale:
             print("Transforming data with fitted scalers...")
-            examples['bts'] = self.scaler.transform(examples['bts'])
-            examples['hrs'] = self.scaler.transform(examples['hrs'])
-            examples['dbp'] = self.scaler.transform(examples['dbp'])
-            examples['mbp'] = self.scaler.transform(examples['mbp'])
-            examples['prediction_mbp'] = self.scaler.transform(examples['prediction_mbp'])
-
+            examples['bts'] = self.scaler_bts.transform(examples['bts'])
+            examples['hrs'] = self.scaler_hrs.transform(examples['hrs'])
+            examples['dbp'] = self.scaler_dbp.transform(examples['dbp'])
+            examples['mbp'] = self.scaler_mbp.transform(examples['mbp'])
+            examples['prediction_mbp'] = self.scaler_prediction_mbp.transform(examples['prediction_mbp'])
+        
         self.data = examples
-
 
     def __getitem__(self, index):
         if self.features == 'S': # 单变量时序预测
@@ -475,15 +477,14 @@ class VitalDBLoader(Dataset):
             hrs = self.data['hrs'][index]
             dbp = self.data['dbp'][index]
             mbp = self.data['mbp'][index]
-            # # 直接将列表转换为 NumPy 数组，并进行 stack 操作
-            # seq_x = np.stack([bts, hrs, dbp, mbp], axis=1)
+            # 直接将列表转换为 NumPy 数组，并进行 stack 操作
+            seq_x = np.stack([bts, hrs, dbp, mbp], axis=1)
 
-            # # 将标量特征扩展到与时间序列相同的长度（seq_len）
+            # 将标量特征扩展到与时间序列相同的长度（seq_len）
             sex = np.full(len(bts), self.data['sex'][index])
             age = np.full(len(bts), self.data['age'][index])
             bmi = np.full(len(bts), self.data['bmi'][index])
             # seq_x = np.stack([sex, age, bmi, bts, hrs, dbp, mbp], axis=1)
-            seq_x = np.stack([bts, hrs, dbp, mbp], axis=1)
 
         # 预测的目标数据是 prediction_mbp 和当前的 mbp，构建 seq_y
         prediction_mbp = self.data['prediction_mbp'][index]
@@ -504,6 +505,15 @@ class VitalDBLoader(Dataset):
 
     def inverse_transform(self, data):
         return self.scaler.inverse_transform(data)
+    
+    def _get_train_scaler(self):
+        return {
+            'bts': self.scaler_bts,
+            'hrs': self.scaler_hrs,
+            'dbp': self.scaler_dbp,
+            'mbp': self.scaler_mbp,
+            'prediction_mbp': self.scaler_prediction_mbp
+        }
 
 
 

@@ -26,9 +26,9 @@ class Exp_Long_Term_Forecast(Exp_Basic):
             model = nn.DataParallel(model, device_ids=self.args.device_ids)
         return model
 
-    def _get_data(self, flag):
-        data_set, data_loader = data_provider(self.args, flag)
-        return data_set, data_loader
+    def _get_data(self, flag, fitted_scaler=None):
+        data_set, data_loader, fitted_scaler = data_provider(self.args, flag, fitted_scaler=fitted_scaler)
+        return data_set, data_loader, fitted_scaler
 
     def _select_optimizer(self):
         model_optim = optim.Adam(self.model.parameters(), lr=self.args.learning_rate)
@@ -74,9 +74,10 @@ class Exp_Long_Term_Forecast(Exp_Basic):
         return total_loss
 
     def train(self, setting):
-        train_data, train_loader = self._get_data(flag='train')
-        vali_data, vali_loader = self._get_data(flag='val')
-        test_data, test_loader = self._get_data(flag='test')
+        train_data, train_loader, scaler = self._get_data(flag='train', fitted_scaler=None)
+        self.fitted_scaler = scaler
+        vali_data, vali_loader, _ = self._get_data(flag='val', fitted_scaler=scaler)
+        test_data, test_loader, _ = self._get_data(flag='test', fitted_scaler=scaler)
 
         path = os.path.join(self.args.checkpoints, setting)
         if not os.path.exists(path):
@@ -169,7 +170,7 @@ class Exp_Long_Term_Forecast(Exp_Basic):
         return self.model
 
     def test(self, setting, test=0):
-        test_data, test_loader = self._get_data(flag='test')
+        test_data, test_loader, _ = self._get_data(flag='test', fitted_scaler=self.fitted_scaler)
         if test:
             print('loading model')
             self.model.load_state_dict(torch.load(os.path.join('./checkpoints/' + setting, 'checkpoint.pth')))

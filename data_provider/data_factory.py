@@ -20,7 +20,7 @@ data_dict = {
 }
 
 
-def data_provider(args, flag):
+def data_provider(args, flag, fitted_scaler):
     Data = data_dict[args.data]
     timeenc = 0 if args.embed != 'timeF' else 1
 
@@ -75,7 +75,8 @@ def data_provider(args, flag):
             target=args.target,
             timeenc=timeenc,
             freq=freq,
-            seasonal_patterns=args.seasonal_patterns
+            seasonal_patterns=args.seasonal_patterns,
+            fitted_scaler=fitted_scaler
         )
         print(flag, len(data_set))
         data_loader = DataLoader(
@@ -84,4 +85,11 @@ def data_provider(args, flag):
             shuffle=shuffle_flag,
             num_workers=args.num_workers,
             drop_last=drop_last)
-        return data_set, data_loader
+
+        # 返回训练集拟合好的scaler
+        if flag == 'train':
+            train_scaler = data_set._get_train_scaler()
+            return data_set, data_loader, train_scaler
+        else:
+            return data_set, data_loader, None
+

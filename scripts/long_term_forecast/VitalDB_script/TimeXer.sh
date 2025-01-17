@@ -10,18 +10,18 @@ python -u run.py \
   --is_training 1 \
   --root_path $root_path \
   --data_path $data_path \
-  --model_id vitaldb_450_150_without_static_and_medicine \
+  --model_id vitaldb_450_150_without_static_and_medicine_450 \
   --model $model_name \
   --data VitalDB \
   --features MS \
   --seq_len 450 \
-  --label_len 150 \
+  --label_len 225 \
   --pred_len 150 \
-  --e_layers 1 \
+  --e_layers 3 \
   --factor 3 \
   --enc_in 4 \
   --dec_in 4 \
-  --c_out 5 \
+  --c_out 1 \
   --des 'Exp' \
   --d_model 256 \
   --d_ff 512 \

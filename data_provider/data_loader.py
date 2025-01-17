@@ -256,14 +256,17 @@ class Dataset_Custom(Dataset):
         border2 = border2s[self.set_type]
 
         if self.features == 'M' or self.features == 'MS':
+            # 去掉data列
             cols_data = df_raw.columns[1:]
             df_data = df_raw[cols_data]
         elif self.features == 'S':
             df_data = df_raw[[self.target]]
 
         if self.scale:
+            # 只有一个csv，因此border1s[0]:border2s[0]就是训练集，每次使用训练集fit scaler
             train_data = df_data[border1s[0]:border2s[0]]
             self.scaler.fit(train_data.values)
+            # 使用训练集拟合好的scaler对其他数据集进行标准化
             data = self.scaler.transform(df_data.values)
         else:
             data = df_data.values
@@ -296,6 +299,7 @@ class Dataset_Custom(Dataset):
 
         seq_x = self.data_x[s_begin:s_end]
         seq_y = self.data_y[r_begin:r_end]
+        # 时间戳
         seq_x_mark = self.data_stamp[s_begin:s_end]
         seq_y_mark = self.data_stamp[r_begin:r_end]
 

@@ -1,8 +1,8 @@
-export CUDA_VISIBLE_DEVICES=0,1,2,3
+export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7
 
 model_name=Crossformer
 
-root_path=/home/share/ioh/VitalDB_IOH/
+root_path=/home/fist/ostrich/VitalDB_IOH
 data_path=vitaldb
 
 python -u run.py \
@@ -10,7 +10,7 @@ python -u run.py \
   --is_training 1 \
   --root_path $root_path \
   --data_path $data_path \
-  --model_id vitaldb_450_150 \
+  --model_id vitaldb_450_150_without_medicine \
   --model $model_name \
   --data VitalDB \
   --features MS \
@@ -28,6 +28,8 @@ python -u run.py \
   --top_k 5 \
   --des 'Exp' \
   --itr 1 \
-  --train_epochs 10 \
   --batch_size 64 \
-  --use_multi_gpu
+  --train_epochs 10 \
+  --num_workers 32 \
+  --use_multi_gpu \
+  --devices 0,1,2

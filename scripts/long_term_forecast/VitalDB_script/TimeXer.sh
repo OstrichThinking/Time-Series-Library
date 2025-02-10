@@ -1,4 +1,4 @@
-export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7
+export CUDA_VISIBLE_DEVICES=4,5,6,7
 
 model_name=TimeXer
 
@@ -10,7 +10,7 @@ python -u run.py \
   --is_training 1 \
   --root_path $root_path \
   --data_path $data_path \
-  --model_id vitaldb_in_450_150_without_medicine \
+  --model_id vitaldb_in_450_150_aaai \
   --model $model_name \
   --data VitalDB \
   --features MS \
@@ -19,8 +19,8 @@ python -u run.py \
   --pred_len 150 \
   --e_layers 3 \
   --factor 3 \
-  --enc_in 3 \
-  --dec_in 3 \
+  --enc_in 8 \
+  --dec_in 8 \
   --c_out 1 \
   --des 'Exp' \
   --d_model 256 \
@@ -30,4 +30,4 @@ python -u run.py \
   --train_epochs 10 \
   --num_workers 32 \
   --use_multi_gpu \
-  --devices 0,1,2
+  --devices 0,1,2,3

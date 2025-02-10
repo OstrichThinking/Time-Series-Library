@@ -328,6 +328,7 @@ class VitalDBLoader(Dataset):
         self.set_type = type_map[flag]
 
         self.features = features
+        
         self.target = target
         self.scale = scale
         self.timeenc = timeenc
@@ -337,11 +338,12 @@ class VitalDBLoader(Dataset):
         self.data_path = data_path
 
         # Initialize scalers for each feature to be standardized
-        self.scaler_bts = StandardScaler()
-        self.scaler_hrs = StandardScaler()
         self.scaler_dbp = StandardScaler()
+        self.scaler_sbp = StandardScaler()
         self.scaler_mbp = StandardScaler()
-        self.scaler_prediction_mbp = StandardScaler()
+        self.scaler_bt = StandardScaler()
+        self.scaler_hr = StandardScaler()
+        self.scaler_prediction_maap = StandardScaler()
         
         self.fitted_scaler = fitted_scaler
 
@@ -349,124 +351,103 @@ class VitalDBLoader(Dataset):
 
     def __read_data__(self):
 
+        # 定义需要读取的列列表
+        columns_to_read = [
+            'caseid',
+            'sex',
+            'age',
+            'bmi',
+            'Solar8000/ART_DBP_window_sample',
+            'Solar8000/ART_MBP_window_sample',
+            'Solar8000/ART_SBP_window_sample',
+            'Solar8000/BT_window_sample',
+            'Solar8000/HR_window_sample',
+            'prediction_maap'
+        ]
+
+        # 只加载指定的列
+        df_raw = pd.read_csv(
+            os.path.join(self.root_path, str(self.data_path)), 
+            usecols=columns_to_read)
+
+        # 按照caseid进行拆分，确保同一caseid的样本不会出现在不同的数据集中
+        unique_caseids = df_raw['caseid'].unique()
+        n_caseids = len(unique_caseids)
+        train_cut = int(n_caseids * 0.7)
+        test_cut = train_cut + int(n_caseids * 0.2)
         if self.set_type == 0:
-            df_raw = pd.read_csv(os.path.join(self.root_path, str(self.data_path) + '_train_data.csv'))
-        elif self.set_type == 1:
-            df_raw = pd.read_csv(os.path.join(self.root_path, str(self.data_path) + '_val_data.csv'))
+            selected_caseids = unique_caseids[:train_cut]
         elif self.set_type == 2:
-            df_raw = pd.read_csv(os.path.join(self.root_path, str(self.data_path) + '_test_data.csv'))
+            selected_caseids = unique_caseids[train_cut:test_cut]
+        elif self.set_type == 1:
+            selected_caseids = unique_caseids[test_cut:]
+        df_raw = df_raw[df_raw['caseid'].isin(selected_caseids)]
 
         self.__process_data(df_raw)
 
     def __process_data(self, data):
 
-        # 数据预处理前总数据
-        print("源数据长度：", len(data))
-        label_counts = data['label'].value_counts(normalize=True) * 100
-        print("处理前的Label分布 (%):")
-        print(label_counts)
+        def parse_sequence(sequence_str):
+            sequence_str = sequence_str[1:-1]
+            sequence_array = sequence_str.split(', ')
 
-        # 定义处理序列数据的函数，直接通过空格拆分并转换为浮点数列表，且完成重采样
-        def parse_sequence(sequence_str, skip_rate=0, sample_type='avg_sample'):
-            try:
-                sequence_list = sequence_str.split()
-                sequence_array = np.array([np.nan if x == 'nan' else float(x) for x in sequence_list])
-                mean_value = round(np.nanmean(sequence_array), 2)
-                # 均值填充
-                sequence_array_filled = np.where(np.isnan(sequence_array), mean_value, sequence_array)
-                
-                if np.any(np.isnan(sequence_array_filled)):
-                    return [] 
-                
-                # 滑动窗口平均
-                def sliding_window_average(time_series, slide_len):
-                    if slide_len <= 0:
-                        raise ValueError("slide_len must be greater than 0")
-                    
-                    # 存储滑动窗口的平均值
-                    window_averages = []
-                    
-                    # 遍历序列，按滑动窗口大小取值
-                    for i in range(0, len(time_series), slide_len):
-                        # 获取当前窗口的值
-                        window = time_series[i:i + slide_len]
-                        # 计算窗口的平均值并存储
-                        window_avg = round(np.nanmean(window), 2)
-                        window_averages.append(window_avg)
-                    
-                    return window_averages
 
-                if skip_rate > 0: # 如果需要重采样
-                    if sample_type == 'skip_sample':
-                        sequence_array_filled = sequence_array_filled[::skip_rate]
-                    elif sample_type == 'avg_sample': #默认按平均值进行采样
-                        sequence_array_filled = sliding_window_average(sequence_array_filled, skip_rate)
-
-                return sequence_array_filled
-            except ValueError:
-                return [] 
+            sequence_array = [np.nan if x == 'nan' else float(x) for x in sequence_array]
+            mean_value = round(np.nanmean(sequence_array), 2)
+            
+            sequence_array_filled = np.where(np.isnan(sequence_array), mean_value, sequence_array)
+            return sequence_array_filled
         
         examples = defaultdict(list)
-
         for index, row in data.iterrows():
-            # if index > 100:
-            #     break
-            bts = parse_sequence(row['bts'][1:-1], skip_rate=0, sample_type='skip_sample') #采样周期是：2*skip_rate
-            hrs = parse_sequence(row['hrs'][1:-1], skip_rate=0, sample_type='skip_sample')
-            dbp = parse_sequence(row['dbp'][1:-1], skip_rate=0, sample_type='skip_sample')
-            mbp = parse_sequence(row['mbp'][1:-1], skip_rate=0, sample_type='skip_sample')
-            prediction_mbp = parse_sequence(row['prediction_mbp'][1:-1], skip_rate=0, sample_type='skip_sample')
-            # print(len(bts), len(hrs), len(dbp), len(mbp), len(prediction_mbp))
-            if len(bts) != 450 or len(hrs) != 450 or len(dbp) != 450 or\
-                len(mbp) != 450 or len(prediction_mbp) != 150:
-                continue
-            
-            examples['caseid'].append(row['caseid'])
-            examples['stime'].append(row['stime'])
-            examples['ioh_stime'].append(row['ioh_stime'])
-            examples['ioh_dtime'].append(row['ioh_dtime'])
-            examples['age'].append(row['age']) # np.full(len(bts), row['age'])
-            examples['sex'].append(row['sex'])
-            examples['bmi'].append(row['bmi'])
-            examples['label'].append(row['label'])
-            examples['bts'].append(bts)
-            examples['hrs'].append(hrs)
+            sex = row['sex']
+            age = row['age']
+            bmi = row['bmi']
+                
+            dbp = np.array(parse_sequence(row['Solar8000/ART_DBP_window_sample']))
+            mbp = np.array(parse_sequence(row['Solar8000/ART_MBP_window_sample']))
+            sbp = np.array(parse_sequence(row['Solar8000/ART_SBP_window_sample']))
+            bt  = np.array(parse_sequence(row['Solar8000/BT_window_sample']))
+            hr  = np.array(parse_sequence(row['Solar8000/HR_window_sample']))
+            prediction_maap = np.array(parse_sequence(row['prediction_maap']))
+
+            examples['sex'].append(sex)
+            examples['age'].append(age)
+            examples['bmi'].append(bmi)
             examples['dbp'].append(dbp)
             examples['mbp'].append(mbp)
-            examples['prediction_mbp'].append(prediction_mbp)
-
-        # 修正统计处理后的样本数量
-        print("处理后的测试样本数量:", len(examples['caseid']))
-
-        # 统计处理后 examples 中 label 列的分布
-        label_counts = pd.Series(examples['label']).value_counts(normalize=True) * 100
-        print("处理后的Label分布 (%):")
-        print(label_counts)
-
+            examples['sbp'].append(sbp)
+            examples['bt'].append(bt)
+            examples['hr'].append(hr)
+            examples['prediction_maap'].append(prediction_maap)
         
         if self.scale and self.set_type == 0:
             print("Fitting scalers on training data...")
             # 初始使用训练集拟合标准化 scaler
-            self.scaler_bts.fit(examples['bts'])
-            self.scaler_hrs.fit(examples['hrs'])
             self.scaler_dbp.fit(examples['dbp'])
+            self.scaler_sbp.fit(examples['sbp'])
             self.scaler_mbp.fit(examples['mbp'])
-            self.scaler_prediction_mbp.fit(examples['prediction_mbp'])
+            self.scaler_bt.fit(examples['bt'])
+            self.scaler_hr.fit(examples['hr'])
+            self.scaler_prediction_maap.fit(examples['prediction_maap'])
         else :
             # 测试和验证时，使用拟合好的 scaler
-            self.scaler_bts = self.fitted_scaler['bts']
-            self.scaler_hrs = self.fitted_scaler['hrs']    
             self.scaler_dbp = self.fitted_scaler['dbp']
+            self.scaler_sbp = self.fitted_scaler['sbp']
             self.scaler_mbp = self.fitted_scaler['mbp']
-            self.scaler_prediction_mbp = self.fitted_scaler['prediction_mbp']
+            self.scaler_bt = self.fitted_scaler['bt']
+            self.scaler_hr = self.fitted_scaler['hr']
+            self.scaler_prediction_maap = self.fitted_scaler['prediction_maap']
 
         if self.scale:
             print("Transforming data with fitted scalers...")
-            examples['bts'] = self.scaler_bts.transform(examples['bts'])
-            examples['hrs'] = self.scaler_hrs.transform(examples['hrs'])
+
             examples['dbp'] = self.scaler_dbp.transform(examples['dbp'])
+            examples['sbp'] = self.scaler_sbp.transform(examples['sbp'])
             examples['mbp'] = self.scaler_mbp.transform(examples['mbp'])
-            examples['prediction_mbp'] = self.scaler_prediction_mbp.transform(examples['prediction_mbp'])
+            examples['bt'] = self.scaler_bt.transform(examples['bt'])
+            examples['hr'] = self.scaler_hr.transform(examples['hr'])
+            examples['prediction_maap'] = self.scaler_prediction_maap.transform(examples['prediction_maap'])
         
         self.data = examples
 
@@ -476,49 +457,44 @@ class VitalDBLoader(Dataset):
             seq_x = np.stack([mbp], axis=1)
 
         else: # 'MS' 'M' 多变量时序预测
-            # 提取数据中第 index 行的特征
-            bts = self.data['bts'][index]
-            hrs = self.data['hrs'][index]
             dbp = self.data['dbp'][index]
+            sbp = self.data['sbp'][index]
             mbp = self.data['mbp'][index]
-            # 直接将列表转换为 NumPy 数组，并进行 stack 操作
-            seq_x = np.stack([bts, hrs, dbp, mbp], axis=1)
+            bt = self.data['bt'][index]
+            hr = self.data['hr'][index]
 
-            # 将标量特征扩展到与时间序列相同的长度（seq_len）
-            sex = np.full(len(bts), self.data['sex'][index])
-            age = np.full(len(bts), self.data['age'][index])
-            bmi = np.full(len(bts), self.data['bmi'][index])
-            # seq_x = np.stack([sex, age, bmi, bts, hrs, dbp, mbp], axis=1)
+            # 将静态特征扩展到与时间序列相同的长度（seq_len）
+            sex = np.full(len(dbp), self.data['sex'][index])
+            age = np.full(len(dbp), self.data['age'][index])
+            bmi = np.full(len(dbp), self.data['bmi'][index])
+
+            seq_x = np.stack([sex, age, bmi, dbp, sbp, mbp, bt, hr], axis=1)
 
         # 预测的目标数据是 prediction_mbp 和当前的 mbp，构建 seq_y
-        prediction_mbp = self.data['prediction_mbp'][index]
-        # seq_y = np.concatenate([mbp, prediction_mbp])[:, np.newaxis] 效果一样
-        seq_y = prediction_mbp[:, np.newaxis]
-
+        prediction_maap = self.data['prediction_maap'][index]
+        seq_y = prediction_maap[:, np.newaxis]
 
         # 随机生成 seq_x_mark 和 seq_y_mark
         seq_x_mark = np.random.rand(*seq_x.shape)
         seq_y_mark = np.random.rand(*seq_y.shape)
-        # seq_x_mark = seq_x
-        # seq_y_mark = seq_y
         
         return seq_x, seq_y, seq_x_mark, seq_y_mark
 
     def __len__(self):
-        return len(self.data['caseid'])
+        return len(self.data['dbp'])
 
     def inverse_transform(self, data):
         return self.scaler.inverse_transform(data)
     
     def _get_train_scaler(self):
         return {
-            'bts': self.scaler_bts,
-            'hrs': self.scaler_hrs,
             'dbp': self.scaler_dbp,
+            'sbp': self.scaler_sbp,
             'mbp': self.scaler_mbp,
-            'prediction_mbp': self.scaler_prediction_mbp
+            'bt': self.scaler_bt,
+            'hr': self.scaler_hr,
+            'prediction_maap': self.scaler_prediction_maap
         }
-
 
 
 class Dataset_M4(Dataset):

@@ -201,12 +201,12 @@ if __name__ == '__main__':
             print('>>>>>>>start training : {}>>>>>>>>>>>>>>>>>>>>>>>>>>'.format(setting))
             exp.train(setting)
 
-            # print('>>>>>>>testing : {}<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<'.format(setting))
-            # exp.test(setting)
-            # if args.gpu_type == 'mps':
-            #     torch.backends.mps.empty_cache()
-            # elif args.gpu_type == 'cuda':
-            #     torch.cuda.empty_cache()
+            print('>>>>>>>testing : {}<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<'.format(setting))
+            exp.test(setting)
+            if args.gpu_type == 'mps':
+                torch.backends.mps.empty_cache()
+            elif args.gpu_type == 'cuda':
+                torch.cuda.empty_cache()
     else:
         exp = Exp(args)  # set experiments
         ii = 0

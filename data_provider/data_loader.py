@@ -323,8 +323,8 @@ class VitalDBLoader(Dataset):
         self.label_len = size[1]
         self.pred_len = size[2]
         
-        # init
-        assert flag in ['train', 'test', 'val']
+        # 训练:验证:测试 比例为 7:2:1
+        assert flag in ['train', 'val', 'test',]
         type_map = {'train': 0, 'val': 1, 'test': 2}
         self.set_type = type_map[flag]
 
@@ -376,13 +376,13 @@ class VitalDBLoader(Dataset):
         unique_caseids = df_raw['caseid'].unique()
         n_caseids = len(unique_caseids)
         train_cut = int(n_caseids * 0.7)
-        test_cut = train_cut + int(n_caseids * 0.2)
+        val_cut = train_cut + int(n_caseids * 0.2)
         if self.set_type == 0:
             selected_caseids = unique_caseids[:train_cut]
-        elif self.set_type == 2:
-            selected_caseids = unique_caseids[train_cut:test_cut]
         elif self.set_type == 1:
-            selected_caseids = unique_caseids[test_cut:]
+            selected_caseids = unique_caseids[train_cut:val_cut]
+        elif self.set_type == 2:
+            selected_caseids = unique_caseids[val_cut:]
         df_raw = df_raw[df_raw['caseid'].isin(selected_caseids)]
 
         self.__process_data(df_raw)

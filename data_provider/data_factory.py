@@ -20,7 +20,7 @@ data_dict = {
 }
 
 
-def data_provider(args, flag, fitted_scaler):
+def data_provider(args, flag, fitted_scaler, is_train):
     Data = data_dict[args.data]
     timeenc = 0 if args.embed != 'timeF' else 1
 
@@ -76,7 +76,8 @@ def data_provider(args, flag, fitted_scaler):
             timeenc=timeenc,
             freq=freq,
             seasonal_patterns=args.seasonal_patterns,
-            fitted_scaler=fitted_scaler
+            fitted_scaler=fitted_scaler,
+            is_train=is_train
         )
         print(flag, len(data_set))
         data_loader = DataLoader(

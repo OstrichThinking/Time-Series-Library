@@ -1,4 +1,4 @@
-export CUDA_VISIBLE_DEVICES=4,5,6,7
+export CUDA_VISIBLE_DEVICES=7
 
 model_name=TimeXer
 
@@ -10,7 +10,7 @@ python -u run.py \
   --is_training 1 \
   --root_path $root_path \
   --data_path $data_path \
-  --model_id vitaldb_in_450_150_aaai \
+  --model_id vitaldb_in_450_150_aaai_50_epochs \
   --model $model_name \
   --data VitalDB \
   --features MS \
@@ -27,7 +27,34 @@ python -u run.py \
   --d_ff 512 \
   --itr 1 \
   --batch_size 64 \
-  --train_epochs 10 \
+  --train_epochs 50 \
   --num_workers 32 \
   --use_multi_gpu \
   --devices 0,1,2,3
+
+python -u run.py \
+  --task_name long_term_forecast \
+  --is_training 0 \
+  --root_path $root_path \
+  --data_path $data_path \
+  --model_id vitaldb_in_450_150_aaai_50_epochs \
+  --model $model_name \
+  --data VitalDB \
+  --features MS \
+  --seq_len 450 \
+  --label_len 225 \
+  --pred_len 150 \
+  --e_layers 3 \
+  --factor 3 \
+  --enc_in 8 \
+  --dec_in 8 \
+  --c_out 1 \
+  --des 'Exp' \
+  --d_model 256 \
+  --d_ff 512 \
+  --itr 1 \
+  --batch_size 64 \
+  --train_epochs 50 \
+  --num_workers 32 \
+  --use_multi_gpu \
+  --devices 0

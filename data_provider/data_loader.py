@@ -371,7 +371,8 @@ class VitalDBLoader(Dataset):
             os.path.join(self.root_path, str(self.data_path)), 
             usecols=columns_to_read)
 
-        df_raw = df_raw.head(1000)
+        # for debug
+        # df_raw = df_raw.head(1000)
 
         # 按照caseid进行拆分，确保同一caseid的样本不会出现在不同的数据集中
         unique_caseids = df_raw['caseid'].unique()

@@ -33,7 +33,7 @@ python -u run.py \
   --d_model 512\
   --d_ff 512\
   --itr 1 \
-  --train_epochs 10 \
+  --train_epochs 50 \
   --num_workers 32 \
   --batch_size 64 \
   --use_multi_gpu \

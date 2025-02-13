@@ -315,7 +315,7 @@ class VitalDBLoader(Dataset):
     def __init__(self, args, root_path, flag='train', size=None,
                  features='S', data_path='ETTh1.csv',
                  target='OT', scale=True, fitted_scaler=None, timeenc=0, freq='h',
-                 is_train=True, seasonal_patterns=None):
+                 seasonal_patterns=None):
         # size [seq_len, label_len, pred_len]
         self.args = args
 
@@ -334,7 +334,6 @@ class VitalDBLoader(Dataset):
         self.scale = scale
         self.timeenc = timeenc
         self.freq = freq
-        self.is_train = is_train
 
         self.root_path = root_path
         self.data_path = data_path
@@ -371,6 +370,8 @@ class VitalDBLoader(Dataset):
         df_raw = pd.read_csv(
             os.path.join(self.root_path, str(self.data_path)), 
             usecols=columns_to_read)
+
+        df_raw = df_raw.head(1000)
 
         # 按照caseid进行拆分，确保同一caseid的样本不会出现在不同的数据集中
         unique_caseids = df_raw['caseid'].unique()
@@ -422,20 +423,34 @@ class VitalDBLoader(Dataset):
             examples['bt'].append(bt)
             examples['hr'].append(hr)
             examples['prediction_maap'].append(prediction_maap)
-        
-        
-        keys = ['dbp', 'sbp', 'mbp', 'bt', 'hr', 'prediction_maap']
-        if self.set_type == 0:
-            if self.scale:
-                print("Fitting scalers on training data...")
-                for key in keys:
-                    getattr(self, f'scaler_{key}').fit(examples[key])
+                
+        if self.scale and self.set_type == 0:
+            print("Fitting scalers on training data...")
+            # 初始使用训练集拟合标准化 scaler
+            self.scaler_dbp.fit(examples['dbp'])
+            self.scaler_sbp.fit(examples['sbp'])
+            self.scaler_mbp.fit(examples['mbp'])
+            self.scaler_bt.fit(examples['bt'])
+            self.scaler_hr.fit(examples['hr'])
+            self.scaler_prediction_maap.fit(examples['prediction_maap'])
+        else :
+            # 测试和验证时，使用拟合好的 scaler
+            self.scaler_dbp = self.fitted_scaler['dbp']
+            self.scaler_sbp = self.fitted_scaler['sbp']
+            self.scaler_mbp = self.fitted_scaler['mbp']
+            self.scaler_bt = self.fitted_scaler['bt']
+            self.scaler_hr = self.fitted_scaler['hr']
+            self.scaler_prediction_maap = self.fitted_scaler['prediction_maap']
+
+        if self.scale:
             print("Transforming data with fitted scalers...")
-            for key in keys:
-                examples[key] = getattr(self, f'scaler_{key}').transform(examples[key])
-        else:
-            for key in keys:
-                setattr(self, f'scaler_{key}', self.fitted_scaler[key])
+
+            examples['dbp'] = self.scaler_dbp.transform(examples['dbp'])
+            examples['sbp'] = self.scaler_sbp.transform(examples['sbp'])
+            examples['mbp'] = self.scaler_mbp.transform(examples['mbp'])
+            examples['bt'] = self.scaler_bt.transform(examples['bt'])
+            examples['hr'] = self.scaler_hr.transform(examples['hr'])
+            examples['prediction_maap'] = self.scaler_prediction_maap.transform(examples['prediction_maap'])
         
         self.data = examples
 

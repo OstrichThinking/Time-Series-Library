@@ -26,12 +26,11 @@ class Exp_Long_Term_Forecast(Exp_Basic):
             model = nn.DataParallel(model, device_ids=self.args.device_ids)
         return model
 
-    def _get_data(self, flag, fitted_scaler=None, is_train=True):
+    def _get_data(self, flag, fitted_scaler=None):
         data_set, data_loader, fitted_scaler = data_provider(
             self.args, 
             flag, 
             fitted_scaler=fitted_scaler,
-            is_train=is_train
         )
         return data_set, data_loader, fitted_scaler
 
@@ -173,12 +172,12 @@ class Exp_Long_Term_Forecast(Exp_Basic):
         return self.model
 
     def test(self, setting, test=0):
-        test_data, test_loader, _ = self._get_data(flag='test', is_train=False)
+        test_data, test_loader, _ = self._get_data(flag='test', fitted_scaler=self.fitted_scaler)
         if test:
             print('loading model')
             self.model.load_state_dict(torch.load(os.path.join('./checkpoints/' + setting, 'checkpoint.pth')))
 
-        preds = []                   
+        preds = []
         trues = []
         folder_path = './test_results/' + setting + '/'
         if not os.path.exists(folder_path):

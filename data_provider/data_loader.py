@@ -423,19 +423,19 @@ class VitalDBLoader(Dataset):
             examples['hr'].append(hr)
             examples['prediction_maap'].append(prediction_maap)
         
-        if self.is_train:
-            keys = ['dbp', 'sbp', 'mbp', 'bt', 'hr', 'prediction_maap']
-            if self.set_type == 0:
-                if self.scale:
-                    print("Fitting scalers on training data...")
-                    for key in keys:
-                        getattr(self, f'scaler_{key}').fit(examples[key])
-                print("Transforming data with fitted scalers...")
+        
+        keys = ['dbp', 'sbp', 'mbp', 'bt', 'hr', 'prediction_maap']
+        if self.set_type == 0:
+            if self.scale:
+                print("Fitting scalers on training data...")
                 for key in keys:
-                    examples[key] = getattr(self, f'scaler_{key}').transform(examples[key])
-            else:
-                for key in keys:
-                    setattr(self, f'scaler_{key}', self.fitted_scaler[key])
+                    getattr(self, f'scaler_{key}').fit(examples[key])
+            print("Transforming data with fitted scalers...")
+            for key in keys:
+                examples[key] = getattr(self, f'scaler_{key}').transform(examples[key])
+        else:
+            for key in keys:
+                setattr(self, f'scaler_{key}', self.fitted_scaler[key])
         
         self.data = examples
 

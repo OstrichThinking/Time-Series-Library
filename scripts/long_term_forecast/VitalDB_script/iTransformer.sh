@@ -1,9 +1,15 @@
-export CUDA_VISIBLE_DEVICES=4,5,6,7
+export CUDA_VISIBLE_DEVICES=0,1,2,3
 
 model_name=iTransformer
 
-root_path=/home/data/ioh/VitalDB_IOH/
+# A100
+# root_path=/home/data/ioh/VitalDB_IOH/
+# data_path=vitaldb_ioh_dataset_with_medication_invasive_group.csv
+
+# V100
+root_path=/home/share/ioh/VitalDB_IOH/ioh_dataset_with_medication/
 data_path=vitaldb_ioh_dataset_with_medication_invasive_group.csv
+
 
 python -u run.py \
   --task_name long_term_forecast \

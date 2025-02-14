@@ -2,6 +2,11 @@ import argparse
 import os
 import torch
 import torch.backends
+
+import sys
+from pathlib import Path
+sys.path.append(str(Path(__file__).resolve().parent))
+
 from exp.exp_long_term_forecasting import Exp_Long_Term_Forecast
 from exp.exp_imputation import Exp_Imputation
 from exp.exp_short_term_forecasting import Exp_Short_Term_Forecast
@@ -16,7 +21,6 @@ if __name__ == '__main__':
     random.seed(fix_seed)
     torch.manual_seed(fix_seed)
     np.random.seed(fix_seed)
-
     parser = argparse.ArgumentParser(description='TimesNet')
 
     # basic config
@@ -101,7 +105,7 @@ if __name__ == '__main__':
     parser.add_argument('--use_gpu', type=bool, default=True, help='use gpu')
     parser.add_argument('--gpu', type=int, default=0, help='gpu')
     parser.add_argument('--gpu_type', type=str, default='cuda', help='gpu type')  # cuda or mps
-    parser.add_argument('--use_multi_gpu', action='store_true', help='use multiple gpus', default=True)
+    parser.add_argument('--use_multi_gpu', action='store_true', help='use multiple gpus', default=False)    # TODO ccyy改动了这里方便debug
     parser.add_argument('--devices', type=str, default='0,1,2,3', help='device ids of multile gpus')
 
     # de-stationary projector params

@@ -323,7 +323,7 @@ class VitalDBLoader(Dataset):
         self.label_len = size[1]
         self.pred_len = size[2]
         
-        # 训练:验证:测试 比例为 7:2:1
+        # 训练:验证:测试 比例为 7:1:2 
         assert flag in ['train', 'val', 'test',]
         type_map = {'train': 0, 'val': 1, 'test': 2}
         self.set_type = type_map[flag]
@@ -369,16 +369,14 @@ class VitalDBLoader(Dataset):
         # 只加载指定的列
         df_raw = pd.read_csv(
             os.path.join(self.root_path, str(self.data_path)), 
-            usecols=columns_to_read)
-
-        # for debug
-        # df_raw = df_raw.head(1000)
+            usecols=columns_to_read,
+            nrows=3000)
 
         # 按照caseid进行拆分，确保同一caseid的样本不会出现在不同的数据集中
         unique_caseids = df_raw['caseid'].unique()
         n_caseids = len(unique_caseids)
         train_cut = int(n_caseids * 0.7)
-        val_cut = train_cut + int(n_caseids * 0.2)
+        val_cut = train_cut + int(n_caseids * 0.1)
         if self.set_type == 0:
             selected_caseids = unique_caseids[:train_cut]
         elif self.set_type == 1:
@@ -395,7 +393,7 @@ class VitalDBLoader(Dataset):
             sequence_str = sequence_str[1:-1]
             sequence_array = sequence_str.split(', ')
 
-
+            # 均值填充 nan
             sequence_array = [np.nan if x == 'nan' else float(x) for x in sequence_array]
             mean_value = round(np.nanmean(sequence_array), 2)
             
@@ -472,7 +470,7 @@ class VitalDBLoader(Dataset):
             age = np.full(len(dbp), self.data['age'][index])
             bmi = np.full(len(dbp), self.data['bmi'][index])
 
-            seq_x = np.stack([sex, age, bmi, dbp, sbp, mbp, bt, hr], axis=1)
+            seq_x = np.stack([sex, age, bmi, dbp, sbp, bt, hr, mbp], axis=1)
 
         # 预测的目标数据是 prediction_mbp 和当前的 mbp，构建 seq_y
         prediction_maap = self.data['prediction_maap'][index]
@@ -487,8 +485,11 @@ class VitalDBLoader(Dataset):
     def __len__(self):
         return len(self.data['dbp'])
 
-    def inverse_transform(self, data):
-        return self.scaler.inverse_transform(data)
+    def inverse_transform(self, data, flag='y'):
+        if flag == 'y':
+            return self.scaler_prediction_maap.inverse_transform(data)
+        else:
+            return self.scaler_mbp.inverse_transform(data)
     
     def _get_train_scaler(self):
         return {

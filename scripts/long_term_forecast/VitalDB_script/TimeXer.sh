@@ -33,7 +33,8 @@ python -u run.py \
   --d_ff 512 \
   --itr 1 \
   --batch_size 64 \
-  --train_epochs 50 \
+  --train_epochs 10 \
   --num_workers 32 \
   --use_multi_gpu \
-  --devices 0,1,2,3
+  --devices 0,1,2,3 \
+  --inverse

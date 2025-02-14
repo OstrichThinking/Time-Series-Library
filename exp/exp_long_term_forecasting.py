@@ -196,6 +196,7 @@ class Exp_Long_Term_Forecast(Exp_Basic):
                 dec_inp = torch.zeros_like(batch_y[:, -self.args.pred_len:, :]).float()
                 dec_inp = torch.cat([batch_y[:, :self.args.label_len, :], dec_inp], dim=1).float().to(self.device)
                 # encoder - decoder
+                # output [batch_size, pred_len, 1]
                 if self.args.use_amp:
                     with torch.cuda.amp.autocast():
                         outputs = self.model(batch_x, batch_x_mark, dec_inp, batch_y_mark)
@@ -211,8 +212,13 @@ class Exp_Long_Term_Forecast(Exp_Basic):
                     shape = batch_y.shape
                     if outputs.shape[-1] != batch_y.shape[-1]:
                         outputs = np.tile(outputs, [1, 1, int(batch_y.shape[-1] / outputs.shape[-1])])
-                    outputs = test_data.inverse_transform(outputs.reshape(shape[0] * shape[1], -1)).reshape(shape)
-                    batch_y = test_data.inverse_transform(batch_y.reshape(shape[0] * shape[1], -1)).reshape(shape)
+                    
+                    # 原版
+                    # outputs = test_data.inverse_transform(outputs.reshape(shape[0] * shape[1], -1)).reshape(shape)
+                    # batch_y = test_data.inverse_transform(batch_y.reshape(shape[0] * shape[1], -1)).reshape(shape)
+
+                    outputs = test_data.inverse_transform(outputs.reshape(shape[0], shape[1]), flag='y').reshape(shape)
+                    batch_y = test_data.inverse_transform(batch_y.reshape(shape[0], shape[1]), flag='y').reshape(shape)
 
                 outputs = outputs[:, :, f_dim:]
                 batch_y = batch_y[:, :, f_dim:]
@@ -226,9 +232,19 @@ class Exp_Long_Term_Forecast(Exp_Basic):
                     input = batch_x.detach().cpu().numpy()
                     if test_data.scale and self.args.inverse:
                         shape = input.shape
-                        input = test_data.inverse_transform(input.reshape(shape[0] * shape[1], -1)).reshape(shape)
-                    gt = np.concatenate((input[0, :, -1], true[0, :, -1]), axis=0)
-                    pd = np.concatenate((input[0, :, -1], pred[0, :, -1]), axis=0)
+                        # 原版 input 是 [batch_size, seq_len, 8]
+                        # input = test_data.inverse_transform(input.reshape(shape[0] * shape[1], -1)).reshape(shape)
+
+                        input_mbp = input[:, :, -1]
+                        # import pdb; pdb.set_trace()
+                        input_mbp_inverse = test_data.inverse_transform(input_mbp, flag='x')
+                        
+                    # 原版
+                    gt = np.concatenate((input_mbp_inverse[0, :], true[0, :, -1]), axis=0)
+                    pd = np.concatenate((input_mbp_inverse[0, :], pred[0, :, -1]), axis=0)
+
+                    # gt: [seq_len+pred_len,]
+                    # pd: [seq_len+pred_len,]
                     visual(gt, pd, os.path.join(folder_path, str(i) + '.pdf'))
 
         preds = np.concatenate(preds, axis=0)

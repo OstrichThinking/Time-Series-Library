@@ -344,6 +344,19 @@ class VitalDBLoader(Dataset):
         self.scaler_mbp = StandardScaler()
         self.scaler_bt = StandardScaler()
         self.scaler_hr = StandardScaler()
+
+        # 用药
+        self.scaler_ppf20_ce = StandardScaler()
+        self.scaler_ppf20_cp = StandardScaler()
+        self.scaler_ppf20_ct = StandardScaler()
+        self.scaler_ppf20_rate = StandardScaler()
+        # self.scaler_ppf20_vol = StandardScaler()
+        self.scaler_rftn20_ce = StandardScaler()
+        self.scaler_rftn20_cp = StandardScaler()
+        self.scaler_rftn20_ct = StandardScaler()
+        self.scaler_rftn20_rate = StandardScaler()
+        # self.scaler_rftn20_vol = StandardScaler()
+
         self.scaler_prediction_maap = StandardScaler()
         
         self.fitted_scaler = fitted_scaler
@@ -363,6 +376,18 @@ class VitalDBLoader(Dataset):
             'Solar8000/ART_SBP_window_sample',
             'Solar8000/BT_window_sample',
             'Solar8000/HR_window_sample',
+            # 用药
+            'Orchestra/PPF20_CE_window_sample',
+            'Orchestra/PPF20_CP_window_sample',
+            'Orchestra/PPF20_CT_window_sample',
+            'Orchestra/PPF20_RATE_window_sample',
+            # 'Orchestra/PPF20_VOL',
+            'Orchestra/RFTN20_CE_window_sample',
+            'Orchestra/RFTN20_CP_window_sample',
+            'Orchestra/RFTN20_CT_window_sample',
+            'Orchestra/RFTN20_RATE_window_sample',
+            # 'Orchestra/RFTN20_VOL',
+            # label
             'prediction_maap'
         ]
 
@@ -401,26 +426,35 @@ class VitalDBLoader(Dataset):
         
         examples = defaultdict(list)
         for index, row in data.iterrows():
-            sex = row['sex']
-            age = row['age']
-            bmi = row['bmi']
-                
-            dbp = np.array(parse_sequence(row['Solar8000/ART_DBP_window_sample']))
-            mbp = np.array(parse_sequence(row['Solar8000/ART_MBP_window_sample']))
-            sbp = np.array(parse_sequence(row['Solar8000/ART_SBP_window_sample']))
-            bt  = np.array(parse_sequence(row['Solar8000/BT_window_sample']))
-            hr  = np.array(parse_sequence(row['Solar8000/HR_window_sample']))
-            prediction_maap = np.array(parse_sequence(row['prediction_maap']))
+            # 提取静态特征
+            for key in ['sex', 'age', 'bmi']:
+                examples[key].append(row[key])
 
-            examples['sex'].append(sex)
-            examples['age'].append(age)
-            examples['bmi'].append(bmi)
-            examples['dbp'].append(dbp)
-            examples['mbp'].append(mbp)
-            examples['sbp'].append(sbp)
-            examples['bt'].append(bt)
-            examples['hr'].append(hr)
-            examples['prediction_maap'].append(prediction_maap)
+            # 提取用药数据
+            med_columns = {
+                'ppf20_ce': 'Orchestra/PPF20_CE_window_sample',
+                'ppf20_cp': 'Orchestra/PPF20_CP_window_sample',
+                'ppf20_ct': 'Orchestra/PPF20_CT_window_sample',
+                'ppf20_rate': 'Orchestra/PPF20_RATE_window_sample',
+                'rftn20_ce': 'Orchestra/RFTN20_CE_window_sample',
+                'rftn20_cp': 'Orchestra/RFTN20_CP_window_sample',
+                'rftn20_ct': 'Orchestra/RFTN20_CT_window_sample',
+                'rftn20_rate': 'Orchestra/RFTN20_RATE_window_sample'
+            }
+            for key, col in med_columns.items():
+                examples[key].append(np.array(parse_sequence(row[col])))
+
+            # 提取时序特征（基本生命体征和预测值）
+            vital_columns = {
+                'dbp': 'Solar8000/ART_DBP_window_sample',
+                'mbp': 'Solar8000/ART_MBP_window_sample',
+                'sbp': 'Solar8000/ART_SBP_window_sample',
+                'bt':  'Solar8000/BT_window_sample',
+                'hr':  'Solar8000/HR_window_sample',
+                'prediction_maap': 'prediction_maap'
+            }
+            for key, col in vital_columns.items():
+                examples[key].append(np.array(parse_sequence(row[col])))
                 
         if self.scale and self.set_type == 0:
             print("Fitting scalers on training data...")
@@ -430,6 +464,16 @@ class VitalDBLoader(Dataset):
             self.scaler_mbp.fit(examples['mbp'])
             self.scaler_bt.fit(examples['bt'])
             self.scaler_hr.fit(examples['hr'])
+            # 用药
+            self.scaler_ppf20_ce.fit(examples['ppf20_ce'])
+            self.scaler_ppf20_cp.fit(examples['ppf20_cp'])
+            self.scaler_ppf20_ct.fit(examples['ppf20_ct'])
+            self.scaler_ppf20_rate.fit(examples['ppf20_rate'])
+            self.scaler_rftn20_ce.fit(examples['rftn20_ce'])
+            self.scaler_rftn20_cp.fit(examples['rftn20_cp'])
+            self.scaler_rftn20_ct.fit(examples['rftn20_ct'])
+            self.scaler_rftn20_rate.fit(examples['rftn20_rate'])
+
             self.scaler_prediction_maap.fit(examples['prediction_maap'])
         else :
             # 测试和验证时，使用拟合好的 scaler
@@ -438,6 +482,16 @@ class VitalDBLoader(Dataset):
             self.scaler_mbp = self.fitted_scaler['mbp']
             self.scaler_bt = self.fitted_scaler['bt']
             self.scaler_hr = self.fitted_scaler['hr']
+            # 用药
+            self.scaler_ppf20_ce = self.fitted_scaler['ppf20_ce']
+            self.scaler_ppf20_cp = self.fitted_scaler['ppf20_cp']
+            self.scaler_ppf20_ct = self.fitted_scaler['ppf20_ct']
+            self.scaler_ppf20_rate = self.fitted_scaler['ppf20_rate']
+            self.scaler_rftn20_ce = self.fitted_scaler['rftn20_ce']
+            self.scaler_rftn20_cp = self.fitted_scaler['rftn20_cp']
+            self.scaler_rftn20_ct = self.fitted_scaler['rftn20_ct']
+            self.scaler_rftn20_rate = self.fitted_scaler['rftn20_rate']
+
             self.scaler_prediction_maap = self.fitted_scaler['prediction_maap']
 
         if self.scale:
@@ -448,6 +502,16 @@ class VitalDBLoader(Dataset):
             examples['mbp'] = self.scaler_mbp.transform(examples['mbp'])
             examples['bt'] = self.scaler_bt.transform(examples['bt'])
             examples['hr'] = self.scaler_hr.transform(examples['hr'])
+
+            examples['ppf20_ce'] = self.scaler_ppf20_ce.transform(examples['ppf20_ce'])
+            examples['ppf20_cp'] = self.scaler_ppf20_cp.transform(examples['ppf20_cp'])
+            examples['ppf20_ct'] = self.scaler_ppf20_ct.transform(examples['ppf20_ct'])
+            examples['ppf20_rate'] = self.scaler_ppf20_rate.transform(examples['ppf20_rate'])
+            examples['rftn20_ce'] = self.scaler_rftn20_ce.transform(examples['rftn20_ce'])
+            examples['rftn20_cp'] = self.scaler_rftn20_cp.transform(examples['rftn20_cp'])
+            examples['rftn20_ct'] = self.scaler_rftn20_ct.transform(examples['rftn20_ct'])
+            examples['rftn20_rate'] = self.scaler_rftn20_rate.transform(examples['rftn20_rate'])
+
             examples['prediction_maap'] = self.scaler_prediction_maap.transform(examples['prediction_maap'])
         
         self.data = examples
@@ -464,12 +528,26 @@ class VitalDBLoader(Dataset):
             bt = self.data['bt'][index]
             hr = self.data['hr'][index]
 
+            # 用药
+            ppf20_ce = self.data['ppf20_ce'][index]
+            ppf20_cp = self.data['ppf20_cp'][index]
+            ppf20_ct = self.data['ppf20_ct'][index]
+            ppf20_rate = self.data['ppf20_rate'][index]
+            rftn20_ce = self.data['rftn20_ce'][index]
+            rftn20_cp = self.data['rftn20_cp'][index]
+            rftn20_ct = self.data['rftn20_ct'][index]
+            rftn20_rate = self.data['rftn20_rate'][index]
+
             # 将静态特征扩展到与时间序列相同的长度（seq_len）
             sex = np.full(len(dbp), self.data['sex'][index])
             age = np.full(len(dbp), self.data['age'][index])
             bmi = np.full(len(dbp), self.data['bmi'][index])
 
-            seq_x = np.stack([sex, age, bmi, dbp, sbp, bt, hr, mbp], axis=1)
+            seq_x = np.stack([sex, age, bmi, 
+                              dbp, sbp, bt, hr, 
+                              ppf20_ce, ppf20_cp, ppf20_ct, ppf20_rate, 
+                              rftn20_ce, rftn20_cp, rftn20_ct, rftn20_rate, 
+                              mbp], axis=1)
 
         # 预测的目标数据是 prediction_mbp 和当前的 mbp，构建 seq_y
         prediction_maap = self.data['prediction_maap'][index]
@@ -497,6 +575,14 @@ class VitalDBLoader(Dataset):
             'mbp': self.scaler_mbp,
             'bt': self.scaler_bt,
             'hr': self.scaler_hr,
+            'ppf20_ce': self.scaler_ppf20_ce,
+            'ppf20_cp': self.scaler_ppf20_cp,
+            'ppf20_ct': self.scaler_ppf20_ct,
+            'ppf20_rate': self.scaler_ppf20_rate,
+            'rftn20_ce': self.scaler_rftn20_ce,
+            'rftn20_cp': self.scaler_rftn20_cp,
+            'rftn20_ct': self.scaler_rftn20_ct,
+            'rftn20_rate': self.scaler_rftn20_rate,
             'prediction_maap': self.scaler_prediction_maap
         }
 

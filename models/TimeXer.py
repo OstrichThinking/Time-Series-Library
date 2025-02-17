@@ -34,16 +34,21 @@ class EnEmbedding(nn.Module):
         self.dropout = nn.Dropout(dropout)
 
     def forward(self, x):
-        # do patching
+        # do patching 将每个变量进行patching
         n_vars = x.shape[1]
         glb = self.glb_token.repeat((x.shape[0], 1, 1, 1))
 
+        # x: [B, 1, seq_len]
         x = x.unfold(dimension=-1, size=self.patch_len, step=self.patch_len)
+        # x: [B，1, patch_num, patch_len]
         x = torch.reshape(x, (x.shape[0] * x.shape[1], x.shape[2], x.shape[3]))
-        # Input encoding
+        # x: [B, patch_num, patch_len]
         x = self.value_embedding(x) + self.position_embedding(x)
+        # x: [B, patch_num, d_model]
         x = torch.reshape(x, (-1, n_vars, x.shape[-2], x.shape[-1]))
+        # x: [B, 1, patch_num, d_model]
         x = torch.cat([x, glb], dim=2)
+        # x: [B, patch_num + 1, d_model]
         x = torch.reshape(x, (x.shape[0] * x.shape[1], x.shape[2], x.shape[3]))
         return self.dropout(x), n_vars
 
@@ -163,10 +168,11 @@ class Model(nn.Module):
             x_enc /= stdev
 
         _, _, N = x_enc.shape
-
+        # 取最后一个变量作为内生变量 endogenous variable x: [B, patch_num + 1, d_model]
         en_embed, n_vars = self.en_embedding(x_enc[:, :, -1].unsqueeze(-1).permute(0, 2, 1))
+        # 取其他变量作为外生变量 exogenous variable  x: [Batch, Variate, d_model]
         ex_embed = self.ex_embedding(x_enc[:, :, :-1], x_mark_enc)
-
+        # 【Batch, patch_num + 1, d_model】 【Batch, nvars, d_model】 eg：[64, 29, 256]、[64, 45, 256]
         enc_out = self.encoder(en_embed, ex_embed)
         enc_out = torch.reshape(
             enc_out, (-1, n_vars, enc_out.shape[-2], enc_out.shape[-1]))
@@ -214,6 +220,7 @@ class Model(nn.Module):
         return dec_out
 
     def forward(self, x_enc, x_mark_enc, x_dec, x_mark_dec, mask=None):
+        # x_enc: [B, L, D] [64, 450, 23]
         if self.task_name == 'long_term_forecast' or self.task_name == 'short_term_forecast':
             if self.features == 'M':
                 dec_out = self.forecast_multi(x_enc, x_mark_enc, x_dec, x_mark_dec)

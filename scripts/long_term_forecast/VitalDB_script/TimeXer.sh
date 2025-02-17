@@ -16,7 +16,7 @@ python -u run.py \
   --is_training 1 \
   --root_path $root_path \
   --data_path $data_path \
-  --model_id vitaldb_450_150_aaai_with_medicine \
+  --model_id vitaldb_450_150_aaai_with_medicine_with_respiratory \
   --model $model_name \
   --data VitalDB \
   --features MS \
@@ -25,15 +25,15 @@ python -u run.py \
   --pred_len 150 \
   --e_layers 3 \
   --factor 3 \
-  --enc_in 16 \
-  --dec_in 16 \
+  --enc_in 23 \
+  --dec_in 23 \
   --c_out 1 \
   --des 'Exp' \
   --d_model 256 \
   --d_ff 512 \
   --itr 1 \
   --batch_size 64 \
-  --train_epochs 10 \
+  --train_epochs 20 \
   --num_workers 32 \
   --use_multi_gpu \
   --devices 0,1,2,3 \

@@ -357,6 +357,15 @@ class VitalDBLoader(Dataset):
         self.scaler_rftn20_rate = StandardScaler()
         # self.scaler_rftn20_vol = StandardScaler()
 
+        # 呼吸相关
+        self.scaler_etco2 = StandardScaler()
+        self.scaler_feo2 = StandardScaler()
+        self.scaler_fio2 = StandardScaler()
+        self.scaler_inco2 = StandardScaler()
+        self.scaler_vent_mawp = StandardScaler()
+        self.scaler_vent_mv = StandardScaler()
+        self.scaler_vent_rr = StandardScaler()
+
         self.scaler_prediction_maap = StandardScaler()
         
         self.fitted_scaler = fitted_scaler
@@ -387,6 +396,14 @@ class VitalDBLoader(Dataset):
             'Orchestra/RFTN20_CT_window_sample',
             'Orchestra/RFTN20_RATE_window_sample',
             # 'Orchestra/RFTN20_VOL',
+            # 呼吸相关
+            'Solar8000/ETCO2_window_sample',
+            'Solar8000/FEO2_window_sample',
+            'Solar8000/FIO2_window_sample',
+            'Solar8000/INCO2_window_sample',
+            'Solar8000/VENT_MAWP_window_sample',
+            'Solar8000/VENT_MV_window_sample',
+            'Solar8000/VENT_RR_window_sample',
             # label
             'prediction_maap'
         ]
@@ -444,6 +461,19 @@ class VitalDBLoader(Dataset):
             for key, col in med_columns.items():
                 examples[key].append(np.array(parse_sequence(row[col])))
 
+            # 提取呼吸相关数据
+            resp_columns = {
+                'etco2': 'Solar8000/ETCO2_window_sample',
+                'feo2': 'Solar8000/FEO2_window_sample',
+                'fio2': 'Solar8000/FIO2_window_sample',
+                'inco2': 'Solar8000/INCO2_window_sample',
+                'vent_mawp': 'Solar8000/VENT_MAWP_window_sample',
+                'vent_mv': 'Solar8000/VENT_MV_window_sample',
+                'vent_rr': 'Solar8000/VENT_RR_window_sample'
+            }
+            for key, col in resp_columns.items():
+                examples[key].append(np.array(parse_sequence(row[col])))
+
             # 提取时序特征（基本生命体征和预测值）
             vital_columns = {
                 'dbp': 'Solar8000/ART_DBP_window_sample',
@@ -473,6 +503,14 @@ class VitalDBLoader(Dataset):
             self.scaler_rftn20_cp.fit(examples['rftn20_cp'])
             self.scaler_rftn20_ct.fit(examples['rftn20_ct'])
             self.scaler_rftn20_rate.fit(examples['rftn20_rate'])
+            # 呼吸相关
+            self.scaler_etco2.fit(examples['etco2'])
+            self.scaler_feo2.fit(examples['feo2'])
+            self.scaler_fio2.fit(examples['fio2'])
+            self.scaler_inco2.fit(examples['inco2'])
+            self.scaler_vent_mawp.fit(examples['vent_mawp'])
+            self.scaler_vent_mv.fit(examples['vent_mv'])
+            self.scaler_vent_rr.fit(examples['vent_rr'])
 
             self.scaler_prediction_maap.fit(examples['prediction_maap'])
         else :
@@ -491,6 +529,14 @@ class VitalDBLoader(Dataset):
             self.scaler_rftn20_cp = self.fitted_scaler['rftn20_cp']
             self.scaler_rftn20_ct = self.fitted_scaler['rftn20_ct']
             self.scaler_rftn20_rate = self.fitted_scaler['rftn20_rate']
+            # 呼吸相关
+            self.scaler_etco2 = self.fitted_scaler['etco2']
+            self.scaler_feo2 = self.fitted_scaler['feo2']
+            self.scaler_fio2 = self.fitted_scaler['fio2']
+            self.scaler_inco2 = self.fitted_scaler['inco2']
+            self.scaler_vent_mawp = self.fitted_scaler['vent_mawp']
+            self.scaler_vent_mv = self.fitted_scaler['vent_mv']
+            self.scaler_vent_rr = self.fitted_scaler['vent_rr']
 
             self.scaler_prediction_maap = self.fitted_scaler['prediction_maap']
 
@@ -511,6 +557,14 @@ class VitalDBLoader(Dataset):
             examples['rftn20_cp'] = self.scaler_rftn20_cp.transform(examples['rftn20_cp'])
             examples['rftn20_ct'] = self.scaler_rftn20_ct.transform(examples['rftn20_ct'])
             examples['rftn20_rate'] = self.scaler_rftn20_rate.transform(examples['rftn20_rate'])
+            # 呼吸相关
+            examples['etco2'] = self.scaler_etco2.transform(examples['etco2'])
+            examples['feo2'] = self.scaler_feo2.transform(examples['feo2'])
+            examples['fio2'] = self.scaler_fio2.transform(examples['fio2'])
+            examples['inco2'] = self.scaler_inco2.transform(examples['inco2'])
+            examples['vent_mawp'] = self.scaler_vent_mawp.transform(examples['vent_mawp'])
+            examples['vent_mv'] = self.scaler_vent_mv.transform(examples['vent_mv'])
+            examples['vent_rr'] = self.scaler_vent_rr.transform(examples['vent_rr'])    
 
             examples['prediction_maap'] = self.scaler_prediction_maap.transform(examples['prediction_maap'])
         
@@ -538,6 +592,15 @@ class VitalDBLoader(Dataset):
             rftn20_ct = self.data['rftn20_ct'][index]
             rftn20_rate = self.data['rftn20_rate'][index]
 
+            # 呼吸相关
+            etco2 = self.data['etco2'][index]
+            feo2 = self.data['feo2'][index]
+            fio2 = self.data['fio2'][index]
+            inco2 = self.data['inco2'][index]
+            vent_mawp = self.data['vent_mawp'][index]
+            vent_mv = self.data['vent_mv'][index]
+            vent_rr = self.data['vent_rr'][index]
+
             # 将静态特征扩展到与时间序列相同的长度（seq_len）
             sex = np.full(len(dbp), self.data['sex'][index])
             age = np.full(len(dbp), self.data['age'][index])
@@ -547,6 +610,7 @@ class VitalDBLoader(Dataset):
                               dbp, sbp, bt, hr, 
                               ppf20_ce, ppf20_cp, ppf20_ct, ppf20_rate, 
                               rftn20_ce, rftn20_cp, rftn20_ct, rftn20_rate, 
+                              etco2, feo2, fio2, inco2, vent_mawp, vent_mv, vent_rr,
                               mbp], axis=1)
 
         # 预测的目标数据是 prediction_mbp 和当前的 mbp，构建 seq_y
@@ -583,6 +647,14 @@ class VitalDBLoader(Dataset):
             'rftn20_cp': self.scaler_rftn20_cp,
             'rftn20_ct': self.scaler_rftn20_ct,
             'rftn20_rate': self.scaler_rftn20_rate,
+            'etco2': self.scaler_etco2,
+            'feo2': self.scaler_feo2,
+            'fio2': self.scaler_fio2,
+            'inco2': self.scaler_inco2,
+            'vent_mawp': self.scaler_vent_mawp,
+            'vent_mv': self.scaler_vent_mv,
+            'vent_rr': self.scaler_vent_rr,
+
             'prediction_maap': self.scaler_prediction_maap
         }
 

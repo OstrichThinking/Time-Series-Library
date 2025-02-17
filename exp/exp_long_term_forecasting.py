@@ -288,7 +288,8 @@ class Exp_Long_Term_Forecast(Exp_Basic):
         mae, mse, rmse, mape, mspe = metric(preds, trues)
         print('mse:{}, mae:{}, dtw:{}'.format(mse, mae, dtw))
         
-        print(f"Test completion time: {time.strftime('%Y年%m月%d日 %H:%M:%S', time.localtime(time.time_ns))}")
+        time_now = time.time()
+        print(f"Test completion time: {time.strftime('%Y年%m月%d日 %H:%M:%S', time.localtime(time_now))}")
         
         f = open("result_long_term_forecast.txt", 'a')
         f.write(setting + "  \n")

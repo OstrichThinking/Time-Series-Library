@@ -42,6 +42,16 @@ if __name__ == '__main__':
                         help='freq for time features encoding, options:[s:secondly, t:minutely, h:hourly, d:daily, b:business days, w:weekly, m:monthly], you can also use more detailed freq like 15min or 3h')
     parser.add_argument('--checkpoints', type=str, default='./checkpoints/', help='location of model checkpoints')
 
+    # 添加IOH预测所需的静态和动态特征参数
+    parser.add_argument('--static_features', nargs='+', default=['caseid', 'sex', 'age', 'bmi'],
+                        help='List of static features to include.')
+    parser.add_argument('--dynamic_features', nargs='+', default=['Solar8000/ART_DBP_window_sample',
+                                                                   'Solar8000/ART_MBP_window_sample',
+                                                                   'Solar8000/ART_SBP_window_sample',
+                                                                   'Solar8000/BT_window_sample',
+                                                                   'Solar8000/HR_window_sample'],
+                        help='List of dynamic waveform features to include.')
+
     # forecasting task
     parser.add_argument('--seq_len', type=int, default=96, help='input sequence length')
     parser.add_argument('--label_len', type=int, default=48, help='start token length')

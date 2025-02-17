@@ -88,6 +88,7 @@ class Exp_Long_Term_Forecast(Exp_Basic):
             os.makedirs(path)
 
         time_now = time.time()
+        print(f"Start training time: {time.strftime('%Y年%m月%d日 %H:%M:%S', time.localtime(time_now))}")
 
         train_steps = len(train_loader)
         early_stopping = EarlyStopping(patience=self.args.patience, verbose=True)
@@ -237,8 +238,18 @@ class Exp_Long_Term_Forecast(Exp_Basic):
 
                         input_mbp = input[:, :, -1]
                         # import pdb; pdb.set_trace()
-                        input_mbp_inverse = test_data.inverse_transform(input_mbp, flag='x')
+                        input_mbp_inverse_dict = test_data.inverse_transform(input_mbp, flag='x')
                         
+                        # 处理 ART_MAP 和 NIBP_MAP
+                        input_mbp_inverse = None
+                        if 'ART_MBP' in input_mbp_inverse_dict and 'NIBP_MBP' in input_mbp_inverse_dict:
+                            # TODO 待做，有创和无创的平均动脉压均需要返回时如何处理？
+                            pass
+                        elif 'ART_MBP' in input_mbp_inverse_dict:
+                            input_mbp_inverse = input_mbp_inverse_dict['ART_MBP']
+                        elif 'NIBP_MBP' in input_mbp_inverse_dict:
+                            input_mbp_inverse = input_mbp_inverse_dict['NIBP_MBP']
+                    
                     # 原版
                     gt = np.concatenate((input_mbp_inverse[0, :], true[0, :, -1]), axis=0)
                     pd = np.concatenate((input_mbp_inverse[0, :], pred[0, :, -1]), axis=0)
@@ -276,6 +287,9 @@ class Exp_Long_Term_Forecast(Exp_Basic):
 
         mae, mse, rmse, mape, mspe = metric(preds, trues)
         print('mse:{}, mae:{}, dtw:{}'.format(mse, mae, dtw))
+        
+        print(f"Test completion time: {time.strftime('%Y年%m月%d日 %H:%M:%S', time.localtime(time_now))}")
+        
         f = open("result_long_term_forecast.txt", 'a')
         f.write(setting + "  \n")
         f.write('mse:{}, mae:{}, dtw:{}'.format(mse, mae, dtw))

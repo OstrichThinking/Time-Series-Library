@@ -329,6 +329,167 @@ class VitalDBLoader(Dataset):
         self.set_type = type_map[flag]
 
         self.features = features
+        self.static_features = args.static_features
+        self.dynamic_features = args.dynamic_features
+        
+        self.target = target
+        self.scale = scale
+        self.timeenc = timeenc
+        self.freq = freq
+
+        self.root_path = root_path
+        self.data_path = data_path
+
+        # Initialize scalers for each feature to be standardized
+        self.scalers = {feature: StandardScaler() for feature in self.static_features if feature != 'caseid' and feature != 'sex'}
+        self.scalers.update({feature: StandardScaler() for feature in self.dynamic_features})
+        
+        self.fitted_scaler = fitted_scaler
+
+        self.__read_data__()
+
+    def __read_data__(self):
+        # 只加载指定的列
+        columns_to_read = self.static_features + self.dynamic_features
+        df_raw = pd.read_csv(
+            os.path.join(self.root_path, str(self.data_path)), 
+            usecols=columns_to_read, nrows=5000)    # 调试时添加，nrows=5000
+
+        # 按照caseid进行拆分，确保同一caseid的样本不会出现在不同的数据集中
+        unique_caseids = df_raw['caseid'].unique()
+        n_caseids = len(unique_caseids)
+        train_cut = int(n_caseids * 0.7)
+        val_cut = train_cut + int(n_caseids * 0.1)
+        if self.set_type == 0:
+            selected_caseids = unique_caseids[:train_cut]
+        elif self.set_type == 1:
+            selected_caseids = unique_caseids[train_cut:val_cut]
+        elif self.set_type == 2:
+            selected_caseids = unique_caseids[val_cut:]
+        df_raw = df_raw[df_raw['caseid'].isin(selected_caseids)]
+
+        self.__process_data(df_raw)
+
+    def __process_data(self, data):
+
+        def parse_sequence(sequence_str):
+            sequence_str = sequence_str[1:-1]
+            sequence_array = sequence_str.split(', ')
+
+            # 均值填充 nan
+            sequence_array = [np.nan if x == 'nan' else float(x) for x in sequence_array]
+            mean_value = round(np.nanmean(sequence_array), 2)
+            
+            sequence_array_filled = np.where(np.isnan(sequence_array), mean_value, sequence_array)
+            return sequence_array_filled
+        
+        examples = defaultdict(list)
+        for index, row in data.iterrows():
+            for feature in self.static_features:
+                if feature != 'caseid':
+                    examples[feature].append(row[feature])
+            
+            for feature in self.dynamic_features:
+                examples[feature].append(np.array(parse_sequence(row[feature])))
+
+        if self.scale and self.set_type == 0:
+            print("Fitting scalers on training data...")
+            for feature in self.static_features:
+                if feature != 'caseid' and feature != 'sex':
+                    self.scalers[feature].fit(np.array(examples[feature]).reshape(-1, 1))
+            # 初始使用训练集拟合标准化 scaler
+            for feature in self.dynamic_features:
+                if feature in self.scalers:
+                    self.scalers[feature].fit(examples[feature])
+        else:
+            # 测试和验证时，使用拟合好的 scaler
+            self.scalers = self.fitted_scaler
+
+        if self.scale:
+            print("Transforming data with fitted scalers...")
+            for feature in self.static_features:
+                if feature != 'caseid' and feature != 'sex':
+                    examples[feature] = self.scalers[feature].transform(np.array(examples[feature]).reshape(-1, 1))
+            for feature in self.dynamic_features:
+                if feature in self.scalers:
+                    examples[feature] = self.scalers[feature].transform(examples[feature])
+        
+        self.data = examples
+
+    def __getitem__(self, index):
+        if self.features == 'S': # 单变量时序预测
+            if 'Solar8000/ART_MBP_window_sample' in self.scalers:
+                mbp = self.data['Solar8000/ART_MBP_window_sample'][index]
+            if 'Solar8000/NIBP_MBP_window_sample' in self.scalers:
+                mbp = self.data['Solar8000/NIBP_MBP_window_sample'][index]
+            seq_x = np.stack([mbp], axis=1)
+
+        else: # 'MS' 'M' 多变量时序预测
+            seq_x = []
+            for feature in self.static_features:
+                if feature != 'caseid':
+                    seq_x.append(np.full(self.seq_len, self.data[feature][index]))
+            
+            for feature in self.dynamic_features:
+                if feature == 'prediction_maap':
+                    continue
+                seq_x.append(self.data[feature][index])
+
+            seq_x = np.stack(seq_x, axis=1)
+
+        # 预测的目标数据是 prediction_maap 和当前的 mbp，构建 seq_y
+        prediction_maap = self.data['prediction_maap'][index]
+        seq_y = prediction_maap[:self.pred_len, np.newaxis]  # 只取前self.pred_len长度的内容
+
+        # 随机生成 seq_x_mark 和 seq_y_mark
+        seq_x_mark = np.random.rand(*seq_x.shape)
+        seq_y_mark = np.random.rand(*seq_y.shape)
+        
+        return seq_x, seq_y, seq_x_mark, seq_y_mark
+
+    def __len__(self):
+        return len(self.data[self.dynamic_features[0]])
+
+    def inverse_transform(self, data, flag='y'):
+        if flag == 'y':
+            return self.scalers['prediction_maap'].inverse_transform(data)
+        else:
+            # 检查两个可能的键，返回一个包含两个结果的字典
+            results = {}
+            if 'Solar8000/ART_MBP_window_sample' in self.scalers:
+                results['ART_MBP'] = self.scalers['Solar8000/ART_MBP_window_sample'].inverse_transform(data)
+            if 'Solar8000/NIBP_MBP_window_sample' in self.scalers:
+                results['NIBP_MBP'] = self.scalers['Solar8000/NIBP_MBP_window_sample'].inverse_transform(data)
+            
+            if results:
+                return results
+            else:
+                raise ValueError("Neither 'Solar8000/ART_MBP_window_sample' nor 'Solar8000/NIBP_MBP_window_sample' found in scalers.")
+    
+    def _get_train_scaler(self):
+        return self.scalers
+
+
+class VitalDBLoader_backup(Dataset):
+    def __init__(self, args, root_path, flag='train', size=None,
+                 features='S', data_path='ETTh1.csv',
+                 target='OT', scale=True, fitted_scaler=None, timeenc=0, freq='h',
+                 seasonal_patterns=None):
+        # size [seq_len, label_len, pred_len]
+        self.args = args
+
+        self.seq_len = size[0]
+        self.label_len = size[1]
+        self.pred_len = size[2]
+        
+        # 训练:验证:测试 比例为 7:1:2 
+        assert flag in ['train', 'val', 'test',]
+        type_map = {'train': 0, 'val': 1, 'test': 2}
+        self.set_type = type_map[flag]
+
+        self.features = features
+        self.static_features = args.static_features
+        self.dynamic_features = args.dynamic_features
         
         self.target = target
         self.scale = scale

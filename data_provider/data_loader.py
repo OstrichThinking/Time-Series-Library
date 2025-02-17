@@ -4,6 +4,7 @@ import pandas as pd
 import glob
 import re
 import torch
+import ast
 from torch.utils.data import Dataset, DataLoader
 from sklearn.preprocessing import StandardScaler
 from utils.timefeatures import time_features
@@ -353,7 +354,7 @@ class VitalDBLoader(Dataset):
         columns_to_read = self.static_features + self.dynamic_features
         df_raw = pd.read_csv(
             os.path.join(self.root_path, str(self.data_path)), 
-            usecols=columns_to_read, nrows=5000)    # 调试时添加，nrows=5000
+            usecols=columns_to_read)    # 调试时添加，nrows=5000
 
         # 按照caseid进行拆分，确保同一caseid的样本不会出现在不同的数据集中
         unique_caseids = df_raw['caseid'].unique()
@@ -383,6 +384,14 @@ class VitalDBLoader(Dataset):
             sequence_array_filled = np.where(np.isnan(sequence_array), mean_value, sequence_array)
             return sequence_array_filled
         
+        def parse_sequence_shorter(sequence_str, pred_len):
+            sequence_str = sequence_str.strip('[]')
+            sequence_list = sequence_str.split(', ')
+            sequence_list = [float(x) if x != 'nan' else np.nan for x in sequence_list] 
+            sequence_list = sequence_list[:pred_len]
+            sequence_str = ', '.join(map(str, sequence_list))
+            return f'[{sequence_str}]'
+        
         examples = defaultdict(list)
         for index, row in data.iterrows():
             for feature in self.static_features:
@@ -391,10 +400,7 @@ class VitalDBLoader(Dataset):
             
             for feature in self.dynamic_features:
                 if feature == 'prediction_maap':
-                    # 只取前self.pred_len的数据
-                    sequence_list = np.array(parse_sequence(row[feature]))
-                    sequence_list = sequence_list[:self.pred_len]
-                    sequence_str = ', '.join(map(str, sequence_list))
+                    sequence_str = parse_sequence_shorter(row[feature], self.pred_len)
                     examples[feature].append(np.array(parse_sequence(sequence_str)))
                 else:
                     examples[feature].append(np.array(parse_sequence(row[feature])))

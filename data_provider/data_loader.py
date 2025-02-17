@@ -439,7 +439,7 @@ class VitalDBLoader(Dataset):
 
         # 预测的目标数据是 prediction_maap 和当前的 mbp，构建 seq_y
         prediction_maap = self.data['prediction_maap'][index]
-        seq_y = prediction_maap[:self.pred_len, np.newaxis]  # 只取前self.pred_len长度的内容
+        seq_y = prediction_maap[:, np.newaxis]  # 只取前self.pred_len长度的内容
 
         # 随机生成 seq_x_mark 和 seq_y_mark
         seq_x_mark = np.random.rand(*seq_x.shape)

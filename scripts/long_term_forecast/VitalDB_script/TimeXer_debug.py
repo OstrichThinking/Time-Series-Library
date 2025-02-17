@@ -15,6 +15,35 @@ data_path = 'vitaldb_ioh_dataset_with_medication_invasive_group.csv'
 # args = 'python -m src.test'
 # args = 'python -m src.dataloader
 
+static_features = ['caseid', 'sex', 'age', 'bmi']  
+dynamic_features = ['Solar8000/ART_DBP_window_sample',
+                    'Solar8000/ART_MBP_window_sample',
+                    'Solar8000/ART_SBP_window_sample',
+                    'Solar8000/BT_window_sample',
+                    'Solar8000/HR_window_sample',
+                    # 用药
+                    'Orchestra/PPF20_CE_window_sample',
+                    'Orchestra/PPF20_CP_window_sample',
+                    'Orchestra/PPF20_CT_window_sample',
+                    'Orchestra/PPF20_RATE_window_sample',
+                    # 'Orchestra/PPF20_VOL',
+                    'Orchestra/RFTN20_CE_window_sample',
+                    'Orchestra/RFTN20_CP_window_sample',
+                    'Orchestra/RFTN20_CT_window_sample',
+                    'Orchestra/RFTN20_RATE_window_sample',
+                    # 'Orchestra/RFTN20_VOL',
+                    # 呼吸相关
+                    'Solar8000/ETCO2_window_sample',
+                    'Solar8000/FEO2_window_sample',
+                    'Solar8000/FIO2_window_sample',
+                    'Solar8000/INCO2_window_sample',
+                    'Solar8000/VENT_MAWP_window_sample',
+                    'Solar8000/VENT_MV_window_sample',
+                    'Solar8000/VENT_RR_window_sample',
+                    'prediction_maap'] 
+static_features_str = ' '.join(static_features)
+dynamic_features_str = ' '.join(dynamic_features)
+
 args=f"python run.py \
   --task_name long_term_forecast \
   --is_training 1 \
@@ -24,6 +53,8 @@ args=f"python run.py \
   --model {model_name} \
   --data VitalDB \
   --features MS \
+  --static_features {static_features_str} \
+  --dynamic_features {dynamic_features_str} \
   --seq_len 450 \
   --label_len 225 \
   --pred_len 150 \

@@ -32,8 +32,8 @@ dynamic_features_str = ' '.join(dynamic_features)
 
 # args = 'python -m src.test'
 # args = 'python -m src.dataloader
-  
-# 单GPU
+
+# 多GPU
 args=f"python run.py \
   --task_name long_term_forecast \
   --is_training 1 \
@@ -63,6 +63,37 @@ args=f"python run.py \
   --use_multi_gpu \
   --devices 0,1,2,3 \
   --inverse"
+
+# # 单GPU
+# args=f"python run.py \
+#   --task_name long_term_forecast \
+#   --is_training 1 \
+#   --root_path {root_path} \
+#   --data_path {data_path} \
+#   --model_id vitaldb_aaai_noninvasive_st30_5 \
+#   --model {model_name} \
+#   --data VitalDB \
+#   --features MS \
+#   --static_features {static_features_str} \
+#   --dynamic_features {dynamic_features_str} \
+#   --seq_len 30 \
+#   --label_len 15 \
+#   --pred_len 10 \
+#   --e_layers 3 \
+#   --factor 3 \
+#   --enc_in 8 \
+#   --dec_in 8 \
+#   --c_out 1 \
+#   --des Exp \
+#   --d_model 256 \
+#   --d_ff 512 \
+#   --itr 1 \
+#   --batch_size 64 \
+#   --train_epochs 1 \
+#   --num_workers 32 \
+#   --use_multi_gpu \
+#   --devices 0 \
+#   --inverse"
 
 
 args = args.split()

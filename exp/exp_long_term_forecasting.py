@@ -11,6 +11,11 @@ import warnings
 import numpy as np
 from utils.dtw_metric import dtw, accelerated_dtw
 from utils.augmentation import run_augmentation, run_augmentation_single
+import wandb
+import random
+
+wandb.init(project="tsl", name="vitaldb_450_150_aaai_with_medicine_with_respiratory_with_classification_with_time_embedding")
+
 
 warnings.filterwarnings('ignore')
 
@@ -137,6 +142,9 @@ class Exp_Long_Term_Forecast(Exp_Basic):
                     loss = criterion(outputs, batch_y)
                     train_loss.append(loss.item())
 
+
+                wandb.log({"iter_loss": loss.item(), "iter_count": epoch * train_steps + i + 1})
+
                 if (i + 1) % 100 == 0:
                     print("\titers: {0}, epoch: {1} | loss: {2:.7f}".format(i + 1, epoch + 1, loss.item()))
                     speed = (time.time() - time_now) / iter_count
@@ -158,6 +166,8 @@ class Exp_Long_Term_Forecast(Exp_Basic):
             vali_loss = self.vali(vali_data, vali_loader, criterion)
             test_loss = self.vali(test_data, test_loader, criterion)
 
+            wandb.log({"epoch_loss": train_loss, "epoch_vali_loss": vali_loss, "epoch_test_loss": test_loss})
+
             print("Epoch: {0}, Steps: {1} | Train Loss: {2:.7f} Vali Loss: {3:.7f} Test Loss: {4:.7f}".format(
                 epoch + 1, train_steps, train_loss, vali_loss, test_loss))
             early_stopping(vali_loss, self.model, path)
@@ -169,6 +179,8 @@ class Exp_Long_Term_Forecast(Exp_Basic):
 
         best_model_path = path + '/' + 'checkpoint.pth'
         self.model.load_state_dict(torch.load(best_model_path))
+
+        wandb.finish()
 
         return self.model
 

@@ -1,7 +1,7 @@
 from data_provider.data_factory import data_provider
 from exp.exp_basic import Exp_Basic
 from utils.tools import EarlyStopping, adjust_learning_rate, visual
-from utils.metrics import metric
+from utils.metrics import metric, ioh_classification_metric
 import torch
 import torch.nn as nn
 from torch import optim
@@ -289,6 +289,9 @@ class Exp_Long_Term_Forecast(Exp_Basic):
 
         mae, mse, rmse, mape, mspe = metric(preds, trues)
         print('mse:{}, mae:{}, dtw:{}'.format(mse, mae, dtw))
+
+        precision, recall, F1, auc = ioh_classification_metric(preds, trues)
+        print('precision:{}, recall:{}, F1:{}, auc:{}'.format(precision, recall, F1, auc))
         
         time_now = time.time()
         print(f"Test completion time: {time.strftime('%Y年%m月%d日 %H:%M:%S', time.localtime(time_now))}")

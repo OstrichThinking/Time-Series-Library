@@ -3,6 +3,7 @@ import runpy
 import sys
 
 os.chdir("/home/cuiy/project/Time-Series-Library/")
+# os.chdir("/home/zhud/fist/ioh/Time-Series-Library/")
 
 # 设置只使用一张 GPU
 # os.environ['CUDA_VISIBLE_DEVICES'] = '1'
@@ -71,7 +72,7 @@ args=f"python run.py \
   --train_epochs 1 \
   --num_workers 32 \
   --use_multi_gpu \
-  --devices 0,1,2,3 \
+  --devices 0 \
   --inverse"
 
 

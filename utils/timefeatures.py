@@ -19,6 +19,8 @@ import pandas as pd
 from pandas.tseries import offsets
 from pandas.tseries.frequencies import to_offset
 
+import math
+import torch
 
 class TimeFeature:
     def __init__(self):
@@ -143,6 +145,40 @@ def time_features_from_frequency_str(freq_str: str) -> List[TimeFeature]:
     """
     raise RuntimeError(supported_freq_msg)
 
+def surgical_time_encoding(t, d_model, base=360000.0):
+    """
+    # TODO 还有没有其它编码方式
+    针对手术时序数据生成时间t的正弦余弦编码。
+    Args:
+        t: 时间值（张量）。
+        d_model: 编码维度。
+        base: 频率调节基数, 表示最大手术时长。
+    Returns:
+        pe: 编码向量（d_model维）。
+    """
+    position = t.float()
+    div_term = torch.exp(torch.arange(0, d_model, 2).float() * -(math.log(base) / d_model))
+    div_term = div_term.unsqueeze(0).unsqueeze(0)
+    div_term = div_term.expand(position.size(0), position.size(1), -1).to(position.device)
+    pe = torch.zeros(*position.shape, d_model, device=position.device)
+    pe[..., 0::2] = torch.sin(position.unsqueeze(-1) * div_term)
+    pe[..., 1::2] = torch.cos(position.unsqueeze(-1) * div_term)
+    return pe
+
+def get_surgical_time_features(times, t_end, d_model):
+    '''获取手术时间的全局与局部特征：
+        绝对时间编码体现手术整体进度，
+        相对编码强调与预测点的时序关系。'''
+    times = times.squeeze(-1)
+    t_end = t_end.squeeze(-1)
+    # 绝对时间编码
+    absolute_pe = surgical_time_encoding(times, d_model // 2, base=3.6e5)
+    # 计算相对时间差
+    delta_t = times - t_end
+    # 相对时间差编码
+    relative_pe = surgical_time_encoding(delta_t, d_model // 2, base=1e4)
+    # 合并绝对和相对编码
+    return torch.cat([absolute_pe, relative_pe], dim=-1)
 
 def time_features(dates, freq='h'):
     return np.vstack([feat(dates) for feat in time_features_from_frequency_str(freq)])

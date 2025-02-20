@@ -4,6 +4,8 @@ import torch.nn.functional as F
 from torch.nn.utils import weight_norm
 import math
 
+from utils.timefeatures import get_surgical_time_features, surgical_time_encoding
+
 
 class PositionalEmbedding(nn.Module):
     def __init__(self, d_model, max_len=5000):
@@ -66,6 +68,8 @@ class FixedEmbedding(nn.Module):
 class TemporalEmbedding(nn.Module):
     def __init__(self, d_model, embed_type='fixed', freq='h'):
         super(TemporalEmbedding, self).__init__()
+        
+        self.d_model = d_model
 
         minute_size = 4
         hour_size = 24
@@ -73,24 +77,32 @@ class TemporalEmbedding(nn.Module):
         day_size = 32
         month_size = 13
 
-        Embed = FixedEmbedding if embed_type == 'fixed' else nn.Embedding
-        if freq == 't':
-            self.minute_embed = Embed(minute_size, d_model)
-        self.hour_embed = Embed(hour_size, d_model)
-        self.weekday_embed = Embed(weekday_size, d_model)
-        self.day_embed = Embed(day_size, d_model)
-        self.month_embed = Embed(month_size, d_model)
+        if embed_type == 'surgicalF':
+            self.surgical_time_encoding = surgical_time_encoding
+            self.get_surgical_time_features = get_surgical_time_features
+        else:
+            Embed = FixedEmbedding if embed_type == 'fixed' else nn.Embedding
+            if freq == 't':
+                self.minute_embed = Embed(minute_size, d_model)
+            self.hour_embed = Embed(hour_size, d_model)
+            self.weekday_embed = Embed(weekday_size, d_model)
+            self.day_embed = Embed(day_size, d_model)
+            self.month_embed = Embed(month_size, d_model)
 
     def forward(self, x):
-        x = x.long()
-        minute_x = self.minute_embed(x[:, :, 4]) if hasattr(
-            self, 'minute_embed') else 0.
-        hour_x = self.hour_embed(x[:, :, 3])
-        weekday_x = self.weekday_embed(x[:, :, 2])
-        day_x = self.day_embed(x[:, :, 1])
-        month_x = self.month_embed(x[:, :, 0])
+        if hasattr(self, 'surgical_time_encoding'):
+            t_end = x[:, -1, :].unsqueeze(1) # x.shape=torch.Size([64, 30, 1]) , t_end.shape=torch.Size([64, 1, 1])
+            return self.get_surgical_time_features(x, t_end, self.d_model)   #TODO 看x的形式，需要修改
+        else:
+            x = x.long()
+            minute_x = self.minute_embed(x[:, :, 4]) if hasattr(
+                self, 'minute_embed') else 0.
+            hour_x = self.hour_embed(x[:, :, 3])
+            weekday_x = self.weekday_embed(x[:, :, 2])
+            day_x = self.day_embed(x[:, :, 1])
+            month_x = self.month_embed(x[:, :, 0])
 
-        return hour_x + weekday_x + day_x + month_x + minute_x
+            return hour_x + weekday_x + day_x + month_x + minute_x
 
 
 class TimeFeatureEmbedding(nn.Module):

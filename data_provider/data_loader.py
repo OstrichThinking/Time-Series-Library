@@ -354,7 +354,7 @@ class VitalDBLoader(Dataset):
         columns_to_read = self.static_features + self.dynamic_features
         df_raw = pd.read_csv(
             os.path.join(self.root_path, str(self.data_path)), 
-            usecols=columns_to_read)    # 调试时添加，nrows=5000
+            usecols=columns_to_read, nrows=5000)    # 调试时添加，nrows=5000
 
         # 按照caseid进行拆分，确保同一caseid的样本不会出现在不同的数据集中
         unique_caseids = df_raw['caseid'].unique()
@@ -450,13 +450,21 @@ class VitalDBLoader(Dataset):
 
             seq_x = np.stack(seq_x, axis=1)
 
-        # 预测的目标数据是 prediction_maap 和当前的 mbp，构建 seq_y
+        # 预测的目标数据是 prediction_maap 和当前 mbp 的label_len部分，构建 seq_y
+        if 'Solar8000/ART_MBP_window_sample' in self.dynamic_features:
+            mbp_label = self.data['Solar8000/ART_MBP_window_sample'][index][-self.label_len:]
+        if 'Solar8000/NIBP_MBP_window_sample' in self.dynamic_features:
+            mbp_label = self.data['Solar8000/NIBP_MBP_window_sample'][index][-self.label_len:]
+        # TODO 有创和无创同时存在时需要再处理, maby同时预测有创和无创的maap
+        
         prediction_maap = self.data['prediction_maap'][index]
-        seq_y = prediction_maap[:, np.newaxis]  
+        seq_y = np.concatenate([mbp_label[:, np.newaxis], prediction_maap[:, np.newaxis]], axis=0)
 
+        # TODO 这里后面做时间特征编码
         # 随机生成 seq_x_mark 和 seq_y_mark
-        seq_x_mark = np.random.rand(*seq_x.shape)
-        seq_y_mark = np.random.rand(*seq_y.shape)
+        # TODO 这里有问题，维度对不上,先暂时使用h, 使用线性投影(4, d_model)
+        seq_x_mark = np.random.rand(seq_x.shape[0], 4)
+        seq_y_mark = np.random.rand(seq_y.shape[0], 4)
         
         return seq_x, seq_y, seq_x_mark, seq_y_mark
 

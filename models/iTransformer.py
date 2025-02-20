@@ -17,6 +17,7 @@ class Model(nn.Module):
         self.task_name = configs.task_name
         self.seq_len = configs.seq_len
         self.pred_len = configs.pred_len
+        self.c_out = configs.c_out
         # Embedding
         self.enc_embedding = DataEmbedding_inverted(configs.seq_len, configs.d_model, configs.embed, configs.freq,
                                                     configs.dropout)
@@ -37,7 +38,7 @@ class Model(nn.Module):
         )
         # Decoder
         if self.task_name == 'long_term_forecast' or self.task_name == 'short_term_forecast':
-            self.projection = nn.Linear(configs.d_model, configs.pred_len, bias=True)
+            self.projection = nn.Linear(configs.d_model, configs.pred_len, bias=True) 
         if self.task_name == 'imputation':
             self.projection = nn.Linear(configs.d_model, configs.seq_len, bias=True)
         if self.task_name == 'anomaly_detection':
@@ -61,10 +62,12 @@ class Model(nn.Module):
         enc_out, attns = self.encoder(enc_out, attn_mask=None)
 
         dec_out = self.projection(enc_out).permute(0, 2, 1)[:, :, :N]
+        
         # De-Normalization from Non-stationary Transformer
         dec_out = dec_out * (stdev[:, 0, :].unsqueeze(1).repeat(1, self.pred_len, 1))
-        dec_out = dec_out + (means[:, 0, :].unsqueeze(1).repeat(1, self.pred_len, 1))
-        return dec_out
+        dec_out = dec_out + (means[:, 0, :].unsqueeze(1).repeat(1, self.pred_len, 1))   
+        # return dec_out
+        return dec_out[:, :, -self.c_out:]
 
     def imputation(self, x_enc, x_mark_enc, x_dec, x_mark_dec, mask):
         # Normalization from Non-stationary Transformer

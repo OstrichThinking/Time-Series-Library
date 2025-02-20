@@ -2,14 +2,14 @@ import os
 import runpy
 import sys
 
-# nohup python -u scripts/long_term_forecast/VitalDB_script/TimeXer_debug_aaai_noninvasive_st30_5.py > output.log 2>&1 &
+# nohup python -u scripts/long_term_forecast/VitalDB_script/iTransformer_debug_aaai_noninvasive_st30_5.py > output_iTransformer.log 2>&1 &
 os.chdir("/home/cuiy/project/Time-Series-Library/")
 
 # 设置只使用一张 GPU
 # os.environ['CUDA_VISIBLE_DEVICES'] = '1'
 
 # 定义模型名称和路径
-model_name = 'TimeXer'
+model_name = 'iTransformer'
 root_path = '/home/share/ioh/VitalDB_IOH/cma_ioh/'
 # data_path = 'vitaldb_ioh_dataset_with_medication_invasive_group.csv'
 data_path = 'ioh_dataset_noninvasive_st30_5.csv'
@@ -33,7 +33,6 @@ dynamic_features_str = ' '.join(dynamic_features)
 # args = 'python -m src.test'
 # args = 'python -m src.dataloader
 
-# 多GPU
 args=f"python run.py \
   --task_name long_term_forecast \
   --is_training 1 \
@@ -49,21 +48,22 @@ args=f"python run.py \
   --label_len 15 \
   --pred_len 10 \
   --e_layers 3 \
+  --d_layers 1 \
   --factor 3 \
-  --enc_in 8 \
-  --dec_in 8 \
+  --enc_in 7 \
+  --dec_in 1 \
   --c_out 1 \
   --des Exp \
-  --d_model 256 \
-  --d_ff 512 \
+  --d_model 512\
+  --d_ff 512\
   --itr 1 \
-  --batch_size 64 \
-  --train_epochs 50 \
+  --train_epochs 10 \
   --num_workers 32 \
-  --learning_rate 0.000001 \
+  --batch_size 64 \
   --use_multi_gpu \
-  --devices 0,1,2,3 \
+  --devices 0 \
   --inverse"
+
 
 # # 单GPU
 # args=f"python run.py \

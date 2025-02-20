@@ -16,11 +16,13 @@ data_path = 'ioh_dataset_noninvasive_st30_5.csv'
 
 # 定义IOH需要处理的静态特征和波形数据
 static_features = ['caseid', 'sex', 'age', 'bmi']  
-dynamic_features = ['Solar8000/NIBP_DBP_window_sample',     # 无创舒张压
+dynamic_features = ['window_sample_time',                   # 观察窗口采样时间范围
+                    'Solar8000/NIBP_DBP_window_sample',     # 无创舒张压
                     'Solar8000/NIBP_MBP_window_sample',     # 无创平均动脉压
                     'Solar8000/BT_window_sample',           # 体温
                     'Solar8000/HR_window_sample',           # 心率
-                    'prediction_maap'] 
+                    'prediction_window_time',               # 预测窗口时间范围
+                    'prediction_maap']                      # 需要预测的有创/无创平均动脉压
 # dynamic_features = ['Solar8000/ART_DBP_window_sample', 
 #                     'Solar8000/ART_MBP_window_sample',
 #                     'Solar8000/ART_SBP_window_sample',
@@ -44,6 +46,7 @@ args=f"python run.py \
   --features MS \
   --static_features {static_features_str} \
   --dynamic_features {dynamic_features_str} \
+  --freq s \
   --seq_len 30 \
   --label_len 15 \
   --pred_len 10 \
@@ -53,11 +56,11 @@ args=f"python run.py \
   --enc_in 7 \
   --dec_in 1 \
   --c_out 1 \
+  --embed surgicalF \
   --des Exp \
   --itr 1 \
-  --train_epochs 10 \
+  --train_epochs 50 \
   --batch_size 64 \
-  --train_epochs 10 \
   --num_workers 32 \
   --use_multi_gpu \
   --devices 0 \

@@ -343,7 +343,7 @@ class VitalDBLoader(Dataset):
 
         # Initialize scalers for each feature to be standardized
         self.scalers = {feature: StandardScaler() for feature in self.static_features if feature != 'caseid' and feature != 'sex'}
-        self.scalers.update({feature: StandardScaler() for feature in self.dynamic_features})
+        self.scalers.update({feature: StandardScaler() for feature in self.dynamic_features if feature != 'window_sample_time' and feature != 'prediction_window_time'})
         
         self.fitted_scaler = fitted_scaler
 
@@ -354,7 +354,7 @@ class VitalDBLoader(Dataset):
         columns_to_read = self.static_features + self.dynamic_features
         df_raw = pd.read_csv(
             os.path.join(self.root_path, str(self.data_path)), 
-            usecols=columns_to_read, nrows=5000)    # 调试时添加，nrows=5000
+            usecols=columns_to_read)    # 调试时添加，nrows=5000
 
         # 按照caseid进行拆分，确保同一caseid的样本不会出现在不同的数据集中
         unique_caseids = df_raw['caseid'].unique()
@@ -402,6 +402,18 @@ class VitalDBLoader(Dataset):
                 if feature == 'prediction_maap':
                     sequence_str = parse_sequence_shorter(row[feature], self.pred_len)
                     examples[feature].append(np.array(parse_sequence(sequence_str)))
+                elif feature == 'window_sample_time':
+                    times = row[feature].split('-')
+                    start = int(times[0])
+                    end = int(times[1]) 
+                    sample_time_array = np.linspace(start, end, self.args.seq_len)
+                    self.stime = (end - start) / (self.args.seq_len - 1)  # 计算间隔
+                    examples[feature].append(sample_time_array)
+                elif feature == 'prediction_window_time':
+                    times = row[feature].split('-')
+                    start = int(times[0])
+                    pred_time_array = np.arange(start, start + self.args.pred_len*self.stime, self.stime)
+                    examples[feature].append(pred_time_array)
                 else:
                     examples[feature].append(np.array(parse_sequence(row[feature])))
 
@@ -412,6 +424,8 @@ class VitalDBLoader(Dataset):
                     self.scalers[feature].fit(np.array(examples[feature]).reshape(-1, 1))
             # 初始使用训练集拟合标准化 scaler
             for feature in self.dynamic_features:
+                if feature == 'window_sample_time' or feature == 'prediction_window_time':
+                    continue
                 if feature in self.scalers:
                     self.scalers[feature].fit(examples[feature])
         else:
@@ -444,7 +458,7 @@ class VitalDBLoader(Dataset):
                     seq_x.append(np.full(self.seq_len, self.data[feature][index]))
             
             for feature in self.dynamic_features:
-                if feature == 'prediction_maap':
+                if feature == 'prediction_maap' or feature == 'window_sample_time' or feature == 'prediction_window_time':
                     continue
                 seq_x.append(self.data[feature][index])
 
@@ -463,8 +477,14 @@ class VitalDBLoader(Dataset):
         # TODO 这里后面做时间特征编码
         # 随机生成 seq_x_mark 和 seq_y_mark
         # TODO 这里有问题，维度对不上,先暂时使用h, 使用线性投影(4, d_model)
-        seq_x_mark = np.random.rand(seq_x.shape[0], 4)
-        seq_y_mark = np.random.rand(seq_y.shape[0], 4)
+        # seq_x_mark = np.random.rand(seq_x.shape[0], 4)
+        # seq_y_mark = np.random.rand(seq_y.shape[0], 4)
+        
+        seq_x_mark = self.data['window_sample_time'][index].reshape(-1, 1)
+        
+        time_label = self.data['window_sample_time'][index][-self.label_len:]
+        time_pred = self.data['prediction_window_time'][index]
+        seq_y_mark = np.concatenate([time_label[:, np.newaxis], time_pred[:, np.newaxis]], axis=0)
         
         return seq_x, seq_y, seq_x_mark, seq_y_mark
 

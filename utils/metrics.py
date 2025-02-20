@@ -67,7 +67,10 @@ def ioh_classification_metric(pred, true, IOH_value=65, duration=30):
     F1 = 2 * precision * recall / (precision + recall) if precision + recall != 0 else 0
     
     # 计算AUC
-    auc = roc_auc_score(true_labels, pred_labels)
+    if len(np.unique(true_labels)) > 1:
+        auc = roc_auc_score(true_labels, pred_labels)
+    else:
+        auc = float('nan')  # 或者选择一个合适的默认值  #TODO
     
     return precision, recall, F1, auc
     

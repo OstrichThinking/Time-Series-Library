@@ -2,8 +2,8 @@ import os
 import runpy
 import sys
 
-os.chdir("/home/cuiy/project/Time-Series-Library/")
-# os.chdir("/home/zhud/fist/ioh/Time-Series-Library/")
+# os.chdir("/home/cuiy/project/Time-Series-Library/")
+os.chdir("/home/zhud/fist/ioh/Time-Series-Library/")
 
 # 设置只使用一张 GPU
 # os.environ['CUDA_VISIBLE_DEVICES'] = '1'
@@ -17,7 +17,9 @@ data_path = 'vitaldb_ioh_dataset_with_medication_invasive_group.csv'
 # args = 'python -m src.dataloader
 
 static_features = ['caseid', 'sex', 'age', 'bmi']  
-dynamic_features = ['Solar8000/ART_DBP_window_sample',
+dynamic_features = [
+                    'window_sample_time',                   # 观察窗口采样时间范围
+                    'Solar8000/ART_DBP_window_sample',
                     'Solar8000/ART_MBP_window_sample',
                     'Solar8000/ART_SBP_window_sample',
                     'Solar8000/BT_window_sample',
@@ -41,6 +43,7 @@ dynamic_features = ['Solar8000/ART_DBP_window_sample',
                     'Solar8000/VENT_MAWP_window_sample',
                     'Solar8000/VENT_MV_window_sample',
                     'Solar8000/VENT_RR_window_sample',
+                    'prediction_window_time',               # 预测窗口时间范围
                     'prediction_maap'] 
 static_features_str = ' '.join(static_features)
 dynamic_features_str = ' '.join(dynamic_features)
@@ -50,7 +53,7 @@ args=f"python run.py \
   --is_training 1 \
   --root_path {root_path} \
   --data_path {data_path} \
-  --model_id vitaldb_450_150_aaai_with_medicine_with_respiratory \
+  --model_id vitaldb_450_150_aaai_with_medicine_with_respiratory_test \
   --model {model_name} \
   --data VitalDB \
   --features MS \
@@ -69,10 +72,10 @@ args=f"python run.py \
   --d_ff 512 \
   --itr 1 \
   --batch_size 64 \
-  --train_epochs 1 \
+  --train_epochs 10 \
   --num_workers 32 \
   --use_multi_gpu \
-  --devices 0 \
+  --devices 0,1,2,3 \
   --inverse"
 
 

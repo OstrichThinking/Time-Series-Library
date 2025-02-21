@@ -307,8 +307,8 @@ class Exp_Long_Term_Forecast(Exp_Basic):
         mae, mse, rmse, mape, mspe = metric(preds, trues)
         print('mse:{}, mae:{}, dtw:{}'.format(mse, mae, dtw))
 
-        precision, recall, F1, auc = ioh_classification_metric(preds, trues)
-        print('precision:{}, recall:{}, F1:{}, auc:{}'.format(precision, recall, F1, auc))
+        precision, recall, F1, accuracy, specificity, auc = ioh_classification_metric(preds, trues)
+        print('precision:{}, recall:{}, F1:{}, accuracy:{}, specificity:{}, auc:{}'.format(precision, recall, F1, accuracy, specificity, auc))
         
         time_now = time.time()
         print(f"Test completion time: {time.strftime('%Y年%m月%d日 %H:%M:%S', time.localtime(time_now))}")

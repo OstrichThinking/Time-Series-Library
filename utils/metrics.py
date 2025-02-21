@@ -96,7 +96,7 @@ def Check_If_IOH(time_series, IOH_value, duration):
     - bool: True if IOH is detected, otherwise False.
     """
     # 将Duration转换为采样点数
-    duration_samples = duration
+    duration_samples = int(duration)  # 将duration转换为整数
     
     # 如果时间序列长度小于duration_samples，不可能满足IOH条件，直接返回False
     if len(time_series) < duration_samples:

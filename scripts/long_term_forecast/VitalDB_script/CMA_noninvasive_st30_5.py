@@ -5,7 +5,7 @@ import sys
 """
     🌟实验简述：
         - 使用 CMA 模型，对 VitalDB 数据集进行长期预测。
-        - 30个点预测5个点
+        - 30个点预测10个点 (15min预测5min)
     
     🏠数据集：
         - ioh_dataset_noninvasive_st30_5.csv 

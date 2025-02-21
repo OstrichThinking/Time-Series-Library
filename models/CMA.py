@@ -107,8 +107,8 @@ class Model(nn.Module):
         
         # 多模态表示
         batch_size = x.size(0)
-        dynamic = x[:, :, :4]  # [batch_size, seq_len, 4] 动态指标
-        static = x[:, 0, 4:7].unsqueeze(1).repeat(1, self.seq_len, 1)  # [batch_size, seq_len, 3] 静态指标
+        static = x[:, 0, :3].unsqueeze(1).repeat(1, self.seq_len, 1)  # [batch_size, seq_len, 3] 静态指标
+        dynamic = x[:, :, 3:7]    # [batch_size, seq_len, 4] 动态指标
         modalities = []
         for i in range(self.n_modalities):
             modality = torch.cat([dynamic[:, :, i:i+1], static], dim=-1)  # [batch_size, seq_len, 4]

@@ -5,7 +5,7 @@ import sys
 """
     🌟实验简述：
         - 使用 CMA 模型，对 VitalDB 数据集进行长期预测。
-        - 30个点预测5个点
+        - 30个点预测10个点 (15min预测5min)
     
     🏠数据集：
         - ioh_dataset_noninvasive_st30_5.csv 
@@ -24,10 +24,10 @@ import sys
         - 损失函数: MAE
     
     👋实验后台启动命令:
-        nohup python -u scripts/long_term_forecast/VitalDB_script/CMA_noninvasive_st30_5.py > checkpoints/output_CMA_vitaldb_noninvasive_st30_5_surgicalF.log 2>&1 &
+        nohup python -u scripts/long_term_forecast/VitalDB_script/CMA_debug_noninvasive_st30_5.py > checkpoints/output_CMA_debug_noninvasive_st30_5.log 2>&1 &
     
     🌞实验结果:
-        - 测试集: 
+        - 测试集:
 """
 
 # 项目根目录

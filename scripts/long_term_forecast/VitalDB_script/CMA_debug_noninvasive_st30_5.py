@@ -39,7 +39,7 @@ os.chdir("/home/cuiy/project/Time-Series-Library/")
 # TODO 定义模型名称和数据集路径
 model_name = 'CMA'
 task_name = 'long_term_forecast'
-model_id = f'vitaldb_aaai_noninvasive_st30_5_surgicalF'  
+model_id = f'vitaldb_noninvasive_st30_5_surgicalF'  
 
 root_path = '/home/share/ioh/VitalDB_IOH/cma_ioh/'
 # data_path = 'vitaldb_ioh_dataset_with_medication_invasive_group.csv'

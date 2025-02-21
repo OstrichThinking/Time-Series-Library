@@ -3,25 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
 
-from layers.Embed import PositionalEmbedding
-
-# 位置编码模块
-class PositionalEncoding(nn.Module):
-    def __init__(self, d_model=512, max_len=5000):
-        super(PositionalEncoding, self).__init__()
-        pe = torch.zeros(max_len, d_model)
-        position = torch.arange(0, max_len, dtype=torch.float).unsqueeze(1)
-        div_term = torch.exp(torch.arange(0, d_model, 2).float() * (-np.log(10000.0) / d_model))
-        pe[:, 0::2] = torch.sin(position * div_term)
-        pe[:, 1::2] = torch.cos(position * div_term)
-        pe = pe.unsqueeze(0)  # [1, max_len, d_model]
-        self.register_buffer('pe', pe)
-
-    def forward(self, x):
-        # x: [batch_size, seq_len, d_model]
-        seq_len = x.size(1)
-        x = x + self.pe[:, :seq_len, :].to(x.device)
-        return x
+from layers.Embed import DataEmbedding
 
 # 多注意力模块
 class MultiAttention(nn.Module):
@@ -81,11 +63,9 @@ class Model(nn.Module):
         # 每个模态的输入维度：1 (动态) + 3 (静态) = 4
         self.modality_input_dim = 4
         
-        # 输入嵌入：将每个模态的 4 个特征映射到 d_model
-        self.modality_embedding = nn.Linear(self.modality_input_dim, self.d_model)
-        
-        # 位置编码
-        self.pos_encoding = PositionalEncoding(self.d_model, max_len=1000)
+        # 模态嵌入：将每个模态的 4 个特征映射到 d_model (包含value_embedding、position_embedding、temporal_embedding)
+        self.modality_embedding = DataEmbedding(self.modality_input_dim, self.d_model,
+                                                args.embed, args.freq, args.dropout)
         
         # 多头注意力机制（为每个模态独立实例化）
         self.attentions = nn.ModuleList([MultiAttention(self.d_model, self.n_heads, self.dropout) 
@@ -105,9 +85,6 @@ class Model(nn.Module):
         
         # 层归一化
         self.layer_norm = nn.LayerNorm(self.d_model)
-        
-        # 层归一化
-        self.output_layer_norm = nn.LayerNorm(self.pred_len * 1)  # 添加层归一化
 
     def forward(self, x, x_mark=None, y=None, y_mark=None):
         # x: [batch_size, seq_len, 7]
@@ -123,8 +100,7 @@ class Model(nn.Module):
         for i in range(self.n_modalities):
             # 每个模态：1 个动态特征 + 3 个静态特征
             modality = torch.cat([dynamic[:, :, i:i+1], static], dim=-1)  # [batch_size, seq_len, 4]
-            modality = self.modality_embedding(modality)  # [batch_size, seq_len, d_model]
-            modality = self.pos_encoding(modality)  # 添加位置编码
+            modality = self.modality_embedding(modality, x_mark)  # [batch_size, seq_len, d_model]
             modalities.append(modality)
         
         # 对每个模态应用多头注意力机制
@@ -152,9 +128,6 @@ class Model(nn.Module):
         fc_out = self.elu(self.fc1(cnn_out))
         fc_out = self.elu(self.fc2(fc_out))
         output = self.fc3(fc_out)  # [batch_size, pred_len * 1]
-        # output = output.view(batch_size, self.pred_len, 1)  # [batch_size, pred_len, 1]
-        # output = self.output_layer_norm(output.view(batch_size, self.pred_len, 1))  # 归一化输出
-        output = self.output_layer_norm(output.squeeze(-1))  # 归一化输出，去掉最后一个维度
         output = output.view(batch_size, self.pred_len, 1)  # [batch_size, pred_len, 1]
         
         return output

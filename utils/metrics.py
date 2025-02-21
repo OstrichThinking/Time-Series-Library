@@ -41,14 +41,18 @@ def metric(pred, true):
 
     return mae, mse, rmse, mape, mspe
 
-def ioh_classification_metric(pred, true, IOH_value=65, duration=30):
+def ioh_classification_metric(pred, true, IOH_value=65, stime=20):
     
     # 15分钟预5分钟，两秒一个点 sql_len:450 pred_len:150
     # map 低于65，持续1分钟，则认为发生IoH
-    # IOH_value=65, duration=30
+    # IOH_value=65
+    # stime 采样间隔
     
     pred_labels = []
     true_labels = []
+
+    # 计算一分钟持续的点数
+    duration = 60 / stime
     
     for i in range(len(pred)):
         pred_labels.append(Check_If_IOH(pred[i], IOH_value, duration))

@@ -474,17 +474,11 @@ class VitalDBLoader(Dataset):
         prediction_maap = self.data['prediction_maap'][index]
         seq_y = np.concatenate([mbp_label[:, np.newaxis], prediction_maap[:, np.newaxis]], axis=0)
 
-        # TODO 这里后面做时间特征编码
-        # 随机生成 seq_x_mark 和 seq_y_mark
-        # TODO 这里有问题，维度对不上,先暂时使用h, 使用线性投影(4, d_model)
-        seq_x_mark = np.random.rand(seq_x.shape[0], 4)
-        seq_y_mark = np.random.rand(seq_y.shape[0], 4)
+        seq_x_mark = self.data['window_sample_time'][index].reshape(-1, 1)
         
-        # seq_x_mark = self.data['window_sample_time'][index].reshape(-1, 1)
-        
-        # time_label = self.data['window_sample_time'][index][-self.label_len:]
-        # time_pred = self.data['prediction_window_time'][index]
-        # seq_y_mark = np.concatenate([time_label[:, np.newaxis], time_pred[:, np.newaxis]], axis=0)
+        time_label = self.data['window_sample_time'][index][-self.label_len:]
+        time_pred = self.data['prediction_window_time'][index]
+        seq_y_mark = np.concatenate([time_label[:, np.newaxis], time_pred[:, np.newaxis]], axis=0)
         
         return seq_x, seq_y, seq_x_mark, seq_y_mark
 

@@ -11,7 +11,7 @@ import sys
         - ioh_dataset_noninvasive_st30_5.csv 
         - 无创组，总计 2016 个cases
         - 每隔2s取一个点，15min预测15min，滑动窗口步长150s（2.5min）
-        - 使用“性别、年龄、BMI、观察窗口时间、无创舒张压、无创平均动脉压、体温、心率、预测窗口时间”预测“无创平均动脉压”
+        - 使用“性别、年龄、BMI、无创舒张压、无创平均动脉压、体温、心率”预测“无创平均动脉压”
     
     🚀模型：
         - Transformer
@@ -22,24 +22,30 @@ import sys
         - 学习率：0.0001
     
     👋 实验后台启动命令
-        nohup python -u scripts/long_term_forecast/VitalDB_script/Transformer_noninvasive_st2_75.py > checkpoints/output_Transformer_vitaldb_noninvasive_st2_75_surgicalF.log 2>&1 &
+        nohup python -u scripts/long_term_forecast/VitalDB_script/Transformer_noninvasive_st2_75_nosurgicalF.py > checkpoints/Transformer_noninvasive_st2_75_nosurgicalF.log 2>&1 &
     
     🌞实验结果:
-        - 测试集: 
+        - 测试集 (A100): 
+            
 """
 
-os.chdir("/home/cuiy/project/Time-Series-Library/")
+# A100项目路径
+os.chdir("/home/temporal/cuiy/Time-Series-Library/")
+# # V100项目路径
+# os.chdir("/home/cuiy/project/Time-Series-Library/")
 
 # 设置只使用一张 GPU
-# os.environ['CUDA_VISIBLE_DEVICES'] = '1'
+os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 
 # TODO 定义模型名称和数据集路径
 model_name = 'Transformer'
 task_name = 'long_term_forecast'
-model_id = f'vitaldb_aaai_noninvasive_st2_75_surgicalF'  
+model_id = 'Transformer_noninvasive_st2_75_nosurgicalF'  
 
-root_path = '/home/share/ioh/VitalDB_IOH/cma_ioh/'
-# data_path = 'vitaldb_ioh_dataset_with_medication_invasive_group.csv'
+# A100数据集路径
+root_path = '/home/data/ioh/cma_ioh/'
+# # V100数据集路径
+# root_path = '/home/share/ioh/VitalDB_IOH/cma_ioh/'
 data_path = 'ioh_dataset_noninvasive_st2_75.csv'
 
 seq_len = 450   # 预测窗口数据点数

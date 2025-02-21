@@ -55,6 +55,10 @@ class Exp_Long_Term_Forecast(Exp_Basic):
 
                 batch_x_mark = batch_x_mark.float().to(self.device)
                 batch_y_mark = batch_y_mark.float().to(self.device)
+                
+                if not self.args.use_embed:
+                    batch_x_mark = None
+                    batch_y_mark = None
 
                 # decoder input
                 dec_inp = torch.zeros_like(batch_y[:, -self.args.pred_len:, :]).float()
@@ -115,6 +119,10 @@ class Exp_Long_Term_Forecast(Exp_Basic):
                 batch_y = batch_y.float().to(self.device)
                 batch_x_mark = batch_x_mark.float().to(self.device)
                 batch_y_mark = batch_y_mark.float().to(self.device)
+                
+                if not self.args.use_embed:
+                    batch_x_mark = None
+                    batch_y_mark = None
 
                 # decoder input
                 dec_inp = torch.zeros_like(batch_y[:, -self.args.pred_len:, :]).float()
@@ -202,6 +210,10 @@ class Exp_Long_Term_Forecast(Exp_Basic):
 
                 batch_x_mark = batch_x_mark.float().to(self.device)
                 batch_y_mark = batch_y_mark.float().to(self.device)
+                
+                if not self.args.use_embed:
+                    batch_x_mark = None
+                    batch_y_mark = None
 
                 # decoder input
                 dec_inp = torch.zeros_like(batch_y[:, -self.args.pred_len:, :]).float()

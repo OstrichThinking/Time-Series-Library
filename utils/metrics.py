@@ -57,14 +57,17 @@ def ioh_classification_metric(pred, true, IOH_value=65, duration=30):
     pred_labels = np.array(pred_labels)
     true_labels = np.array(true_labels)
     
-    # 计算精确率、召回率、F1分数
+    # 计算精确率、召回率、F1分数、准确率、特异性
     TP = np.sum(np.logical_and(pred_labels == 1, true_labels == 1))
     FP = np.sum(np.logical_and(pred_labels == 1, true_labels == 0))
     FN = np.sum(np.logical_and(pred_labels == 0, true_labels == 1))
+    TN = np.sum(np.logical_and(pred_labels == 0, true_labels == 0))
     
     precision = TP / (TP + FP) if TP + FP != 0 else 0
     recall = TP / (TP + FN) if TP + FN != 0 else 0
     F1 = 2 * precision * recall / (precision + recall) if precision + recall != 0 else 0
+    accuracy = (TP + TN) / (TP + FP + FN + TN) if TP + FP + FN + TN != 0 else 0
+    specificity = TN / (TN + FP) if TN + FP != 0 else 0
     
     # 计算AUC
     if len(np.unique(true_labels)) > 1:
@@ -72,7 +75,7 @@ def ioh_classification_metric(pred, true, IOH_value=65, duration=30):
     else:
         auc = float('nan')  # 或者选择一个合适的默认值  #TODO
     
-    return precision, recall, F1, auc
+    return precision, recall, F1, accuracy, specificity, auc
     
 
 def Check_If_IOH(time_series, IOH_value, duration):

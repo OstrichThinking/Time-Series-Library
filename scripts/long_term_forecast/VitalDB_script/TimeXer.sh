@@ -11,7 +11,8 @@ root_path=/home/share/ioh/VitalDB_IOH/ioh_dataset_with_medication/
 data_path=vitaldb_ioh_dataset_with_medication_invasive_group.csv
 
 static_features="caseid sex age bmi"
-dynamic_features="Solar8000/ART_DBP_window_sample \
+dynamic_features="window_sample_time \
+                  Solar8000/ART_DBP_window_sample \
                   Solar8000/ART_MBP_window_sample \
                   Solar8000/ART_SBP_window_sample \
                   Solar8000/BT_window_sample \
@@ -31,6 +32,7 @@ dynamic_features="Solar8000/ART_DBP_window_sample \
                   Solar8000/VENT_MAWP_window_sample \
                   Solar8000/VENT_MV_window_sample \
                   Solar8000/VENT_RR_window_sample \
+                  prediction_window_time \
                   prediction_maap"
 
 python -u run.py \
@@ -38,7 +40,7 @@ python -u run.py \
   --is_training 1 \
   --root_path $root_path \
   --data_path $data_path \
-  --model_id vitaldb_450_150_aaai_with_medicine_with_respiratory_with_classification_with_time_embedding\
+  --model_id vitaldb_450_150_aaai_with_medicine_with_respiratory_with_classification_with_time_embedding_batch128\
   --model $model_name \
   --data VitalDB \
   --features MS \
@@ -52,12 +54,13 @@ python -u run.py \
   --enc_in 23 \
   --dec_in 23 \
   --c_out 1 \
+  --embed surgicalF \
   --des Exp \
   --d_model 256 \
   --d_ff 512 \
   --itr 1 \
-  --batch_size 64 \
-  --train_epochs 20 \
+  --batch_size 128 \
+  --train_epochs 50 \
   --num_workers 32 \
   --use_multi_gpu \
   --devices 0,1,2,3 \

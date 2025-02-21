@@ -40,7 +40,7 @@ python -u run.py \
   --is_training 1 \
   --root_path $root_path \
   --data_path $data_path \
-  --model_id vitaldb_450_150_aaai_with_medicine_with_respiratory_with_classification_with_time_embedding_batch128\
+  --model_id vitaldb_450_150_aaai_with_medicine_with_respiratory_with_classification_with_time_embedding_batch32\
   --model $model_name \
   --data VitalDB \
   --features MS \
@@ -59,7 +59,7 @@ python -u run.py \
   --d_model 256 \
   --d_ff 512 \
   --itr 1 \
-  --batch_size 128 \
+  --batch_size 64 \
   --train_epochs 50 \
   --num_workers 32 \
   --use_multi_gpu \

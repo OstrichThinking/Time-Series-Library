@@ -90,6 +90,7 @@ if __name__ == '__main__':
     parser.add_argument('--dropout', type=float, default=0.1, help='dropout')
     parser.add_argument('--embed', type=str, default='surgicalF',
                         help='time features encoding, options:[timeF, fixed, learned, surgicalF]')
+    parser.add_argument('--use_embed', action='store_true', help='time features encoding', default=False)
     parser.add_argument('--activation', type=str, default='gelu', help='activation')
     parser.add_argument('--channel_independence', type=int, default=1,
                         help='0: channel dependence 1: channel independence for FreTS model')

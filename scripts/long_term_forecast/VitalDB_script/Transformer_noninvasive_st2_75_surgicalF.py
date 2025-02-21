@@ -5,12 +5,12 @@ import sys
 """
     🌟实验简述：
         - 使用 Transformer 模型，对 VitalDB 数据集进行长期预测。
-        - 30个点预测5个点
+        - 450个点预测150个点
     
     🏠数据集：
         - ioh_dataset_noninvasive_st30_5.csv 
-        - 无创组，总计 2065 个cases
-        - 每隔30s取一个点，15min预测15min，滑动窗口步长150s（2.5min）
+        - 无创组，总计 2016 个cases
+        - 每隔2s取一个点，15min预测15min，滑动窗口步长150s（2.5min）
         - 使用“性别、年龄、BMI、观察窗口时间、无创舒张压、无创平均动脉压、体温、心率、预测窗口时间”预测“无创平均动脉压”
     
     🚀模型：
@@ -22,26 +22,36 @@ import sys
         - 学习率：0.0001
     
     👋 实验后台启动命令
-        nohup python -u scripts/long_term_forecast/VitalDB_script/Transformer_noninvasive_st30_5.py > checkpoints/output_Transformer_vitaldb_noninvasive_st30_5_surgicalF.log 2>&1 &
+        nohup python -u scripts/long_term_forecast/VitalDB_script/Transformer_noninvasive_st2_75_surgicalF.py > checkpoints/output_Transformer_noninvasive_st2_75_surgicalF.log 2>&1 &
     
     🌞实验结果:
-        - 测试集: mse:63.4347038269043, mae:5.252523422241211
+        - 测试集 (V100): 
+            mse:57.86697769165039, mae:4.9363226890563965, dtw:Not calculated
+            precision:0.8508500772797527, recall:0.5782563025210085, F1:0.6885553470919326, auc:0.7821926905734264
 """
 
-os.chdir("/home/cuiy/project/Time-Series-Library/")
+# A100项目路径
+os.chdir("/home/temporal/cuiy/Time-Series-Library/")
+# # V100项目路径
+# os.chdir("/home/cuiy/project/Time-Series-Library/")
 
 # 设置只使用一张 GPU
-# os.environ['CUDA_VISIBLE_DEVICES'] = '1'
+os.environ['CUDA_VISIBLE_DEVICES'] = '1'
 
 # TODO 定义模型名称和数据集路径
 model_name = 'Transformer'
 task_name = 'long_term_forecast'
-model_id = f'vitaldb_aaai_noninvasive_st30_5_surgicalF'  
+model_id = 'Transformer_noninvasive_st2_75_surgicalF'  
 
-# V100数据集路径
-root_path = '/home/share/ioh/VitalDB_IOH/cma_ioh/'
-# data_path = 'vitaldb_ioh_dataset_with_medication_invasive_group.csv'
-data_path = 'ioh_dataset_noninvasive_st30_5.csv'
+# A100数据集路径
+root_path = '/home/data/ioh/cma_ioh/'
+# # V100数据集路径
+# root_path = '/home/share/ioh/VitalDB_IOH/cma_ioh/'
+data_path = 'ioh_dataset_noninvasive_st2_75.csv'
+
+seq_len = 450   # 预测窗口数据点数
+label_len = 225 # 预测窗口加入label数据的点数
+pred_len = 150  # 预测窗口数据点数
 
 # TODO定义IOH需要处理的静态特征和波形数据
 static_features = ['caseid', 'sex', 'age', 'bmi']  
@@ -74,9 +84,9 @@ args=f"python run.py \
   --static_features {static_features_str} \
   --dynamic_features {dynamic_features_str} \
   --freq s \
-  --seq_len 30 \
-  --label_len 15 \
-  --pred_len 10 \
+  --seq_len {seq_len} \
+  --label_len {label_len} \
+  --pred_len {pred_len} \
   --e_layers 2 \
   --d_layers 1 \
   --factor 3 \
@@ -84,6 +94,7 @@ args=f"python run.py \
   --dec_in 1 \
   --c_out 1 \
   --embed surgicalF \
+  --use_embed \
   --des Exp \
   --itr 1 \
   --train_epochs 50 \

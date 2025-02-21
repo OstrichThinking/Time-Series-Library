@@ -1,5 +1,6 @@
 import os
 import torch
+import swanlab
 from models import Autoformer, Transformer, TimesNet, Nonstationary_Transformer, DLinear, FEDformer, \
     Informer, LightTS, Reformer, ETSformer, Pyraformer, PatchTST, MICN, Crossformer, FiLM, iTransformer, \
     Koopa, TiDE, FreTS, TimeMixer, TSMixer, SegRNN, MambaSimple, TemporalFusionTransformer, SCINet, PAttn, TimeXer, \
@@ -9,6 +10,13 @@ from models import Autoformer, Transformer, TimesNet, Nonstationary_Transformer,
 class Exp_Basic(object):
     def __init__(self, args):
         self.args = args
+        
+        self.swanlab=swanlab.init(
+            project=args.swan_project,
+            workspace=args.swan_workspace, 
+            name=f"{args.task_name}_{args.model}_{args.model_id}"
+        )
+        
         self.model_dict = {
             'TimesNet': TimesNet,
             'Autoformer': Autoformer,

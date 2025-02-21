@@ -169,3 +169,4 @@ run_anylearn.py
 environment.txt
 
 wandb/
+swanlog/

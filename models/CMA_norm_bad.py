@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
 
-from layers.Embed import PositionalEmbedding, TemporalEmbedding, TimeFeatureEmbedding
+from layers.Embed import PositionalEmbedding
 
 # 位置编码模块
 class PositionalEncoding(nn.Module):
@@ -84,11 +84,6 @@ class Model(nn.Module):
         # 输入嵌入：将每个模态的 4 个特征映射到 d_model
         self.modality_embedding = nn.Linear(self.modality_input_dim, self.d_model)
         
-        # 时间特征嵌入
-        self.temporal_embedding = TemporalEmbedding(d_model=args.d_model, embed_type=args.embed,
-                                                    freq=args.freq) if args.embed != 'timeF' else TimeFeatureEmbedding(
-            d_model=args.d_model, embed_type=args.embed, freq=args.freq)
-        
         # 位置编码
         self.pos_encoding = PositionalEncoding(self.d_model, max_len=1000)
         
@@ -110,6 +105,9 @@ class Model(nn.Module):
         
         # 层归一化
         self.layer_norm = nn.LayerNorm(self.d_model)
+        
+        # 层归一化
+        self.output_layer_norm = nn.LayerNorm(self.pred_len * 1)  # 添加层归一化
 
     def forward(self, x, x_mark=None, y=None, y_mark=None):
         # x: [batch_size, seq_len, 7]
@@ -126,12 +124,7 @@ class Model(nn.Module):
             # 每个模态：1 个动态特征 + 3 个静态特征
             modality = torch.cat([dynamic[:, :, i:i+1], static], dim=-1)  # [batch_size, seq_len, 4]
             modality = self.modality_embedding(modality)  # [batch_size, seq_len, d_model]
-            
-            if x_mark is None:
-                modality = self.pos_encoding(modality)  # 直接添加位置编码
-            else:
-                modality = self.pos_encoding(modality) + self.temporal_embedding(x_mark)    # 添加位置编码+时间编码
-            
+            modality = self.pos_encoding(modality)  # 添加位置编码
             modalities.append(modality)
         
         # 对每个模态应用多头注意力机制
@@ -159,6 +152,9 @@ class Model(nn.Module):
         fc_out = self.elu(self.fc1(cnn_out))
         fc_out = self.elu(self.fc2(fc_out))
         output = self.fc3(fc_out)  # [batch_size, pred_len * 1]
+        # output = output.view(batch_size, self.pred_len, 1)  # [batch_size, pred_len, 1]
+        # output = self.output_layer_norm(output.view(batch_size, self.pred_len, 1))  # 归一化输出
+        output = self.output_layer_norm(output.squeeze(-1))  # 归一化输出，去掉最后一个维度
         output = output.view(batch_size, self.pred_len, 1)  # [batch_size, pred_len, 1]
         
         return output

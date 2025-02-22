@@ -105,9 +105,6 @@ class Model(nn.Module):
         
         # 层归一化
         self.layer_norm = nn.LayerNorm(self.d_model)
-        
-        # 层归一化
-        self.output_layer_norm = nn.LayerNorm(self.pred_len * 1)  # 添加层归一化
 
     def forward(self, x, x_mark=None, y=None, y_mark=None):
         # x: [batch_size, seq_len, 7]
@@ -152,9 +149,6 @@ class Model(nn.Module):
         fc_out = self.elu(self.fc1(cnn_out))
         fc_out = self.elu(self.fc2(fc_out))
         output = self.fc3(fc_out)  # [batch_size, pred_len * 1]
-        # output = output.view(batch_size, self.pred_len, 1)  # [batch_size, pred_len, 1]
-        # output = self.output_layer_norm(output.view(batch_size, self.pred_len, 1))  # 归一化输出
-        output = self.output_layer_norm(output.squeeze(-1))  # 归一化输出，去掉最后一个维度
         output = output.view(batch_size, self.pred_len, 1)  # [batch_size, pred_len, 1]
         
         return output

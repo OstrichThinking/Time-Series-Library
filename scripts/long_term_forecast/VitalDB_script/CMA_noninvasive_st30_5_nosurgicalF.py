@@ -24,10 +24,60 @@ import sys
         - 损失函数: MAE
     
     👋实验后台启动命令:
-        nohup python -u scripts/long_term_forecast/VitalDB_script/CMA_noninvasive_st30_5.py > checkpoints/output_CMA_vitaldb_noninvasive_st30_5_surgicalF.log 2>&1 &
+        nohup python -u scripts/long_term_forecast/VitalDB_script/CMA_noninvasive_st30_5_nosurgicalF.py > checkpoints/output_CMA_noninvasive_st30_5_nosurgicalF.log 2>&1 &
     
     🌞实验结果:
-        - 测试集: mse:65.56343078613281, mae:5.509202003479004
+        - 测试集 (V100, 使用'CMA_v1_64.97'模型, dmodel=64):
+            mse:64.97465515136719, 
+            mae:5.45028829574585
+            
+            precision:0.8137988362427265, 【有问题，要重跑】
+            recall:0.5226908702616124, 
+            F1:0.6365409622886867, 
+            accuracy:0.9312338541025956, 
+            specificity:0.9844282238442822, 
+            auc:0.7535595470529473
+        
+        - 测试集 (V100, 使用'CMA_v1_64.97'模型, dmodel=512):    
+            mse:63.35157012939453, 
+            mae:5.337813854217529
+            
+            precision:0.8716108452950558, 
+            recall:0.5290416263310745, 
+            F1:0.6584337349397591, 
+            accuracy:0.9302497232131873, 
+            specificity:0.9886555806087937, 
+            auc:0.7588486034699341
+        
+        - 测试集 (V100, 使用'CMA_v1_64.97'模型, dmodel=512):      
+            - 在最后输出加入层归一化效果更差
+            mse:305.3290710449219, mae:12.666884422302246
+
+        - 测试集 (V100, 使用'CMA_v2_68.53'模型, dmodel=64):   
+            mse:68.52902221679688, 
+            mae:5.73137092590332
+            
+            precision:0.8021032504780115, 【有问题，要重跑】
+            recall:0.44794447410571275, 
+            F1:0.5748544021925317, 
+            accuracy:0.9236683478902694, 
+            specificity:0.9856100104275287, 
+            auc:0.7167772422666208
+        
+        - 测试集 (V100, 使用'CMA_v2_68.53'模型, dmodel=512):       
+            mse:63.98395919799805, 
+            mae:5.435329914093018
+            
+            precision:0.833029197080292, 【有问题，要重跑】
+            recall:0.4874532835024026, 
+            F1:0.6150218928932301, 
+            accuracy:0.9296961495878951, 
+            specificity:0.9872784150156413, 
+            auc:0.7373658492590219
+
+
+
+
 """
 
 # 项目根目录
@@ -39,11 +89,12 @@ os.chdir("/home/cuiy/project/Time-Series-Library/")
 # TODO 定义模型名称和数据集路径
 model_name = 'CMA'
 task_name = 'long_term_forecast'
-model_id = f'vitaldb_aaai_noninvasive_st30_5_surgicalF'  
+model_id = f'vitaldb_noninvasive_st30_5_surgicalF'  
 
 root_path = '/home/share/ioh/VitalDB_IOH/cma_ioh/'
 # data_path = 'vitaldb_ioh_dataset_with_medication_invasive_group.csv'
 data_path = 'ioh_dataset_noninvasive_st30_5.csv'
+stime = 30
 
 # TODO定义IOH需要处理的静态特征和波形数据
 static_features = ['caseid', 'sex', 'age', 'bmi']  
@@ -84,12 +135,14 @@ args=f"python run.py \
   --seq_len 30 \
   --label_len 15 \
   --pred_len 10 \
+  --stime {stime} \
   --e_layers 2 \
   --d_layers 1 \
   --factor 3 \
   --enc_in 7 \
   --dec_in 1 \
   --c_out 1 \
+  --d_model 512 \
   --embed surgicalF \
   --des Exp \
   --itr 1 \

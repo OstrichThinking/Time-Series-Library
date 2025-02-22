@@ -27,7 +27,7 @@ import sys
         nohup python -u scripts/long_term_forecast/VitalDB_script/CMA_noninvasive_st30_5_surgicalF.py > checkpoints/output_CMA_noninvasive_st30_5_surgicalF.log 2>&1 &
     
     🌞实验结果:
-        - 测试集 (V100, 使用'CMA_v1_64.97'模型, dmodel=512):
+        - 测试集 (A100, 使用'CMA_v1_64.97'模型, dmodel=512):
         mse:63.297428131103516, 
         mae:5.388845920562744
         
@@ -37,7 +37,28 @@ import sys
         accuracy:0.9255135933079099, 
         specificity:0.9902762119503946, 
         auc:0.7354575638648391
+        
+        - 测试集 (A100, 使用'CMA_v1_64.97'模型, dmodel=512, batchsize=256):
+        mse:64.08560943603516, mae:5.450108528137207
+        precision:0.8599527930763179, 
+        
+        recall:0.5290416263310745, 
+        F1:0.6550794126460894, 
+        accuracy:0.929204084143191, 
+        specificity:0.9874577226606539, 
+        auc:0.7582496744958641
+        
+        - 测试集 (A100, 使用'CMA_v1_64.97'模型, dmodel=512, lastnorm (CMA_lastnormalbad.py)):
+        mse:278.8521728515625, mae:12.1730375289917, dtw:Not calculated
+        precision:0.00625, recall:0.000484027105517909, F1:0.0008984725965858041, accuracy:0.8632058063722475, specificity:0.9887965050732808, auc:0.49464026608939937
 
+        - ！！测试集 (A100, maby),这是无时间编码的，先写在这里
+        mse:67.97599029541016, mae:5.695897579193115, dtw:Not calculated
+        precision:0.8495575221238938, recall:0.46466602129719264, F1:0.6007509386733416, accuracy:0.9215155615696887, specificity:0.988021420518602, auc:0.7263437209078973
+        
+        - ！！测试集 (A100, maby),这是时间编码的，先写在这里
+        mse:71.73130798339844, mae:5.937591552734375, dtw:Not calculated
+        precision:0.8377281947261663, recall:0.3998063891577928, F1:0.5412844036697247, accuracy:0.9138885471767745, specificity:0.9887260428410372, auc:0.694266215999415
 
 """
 
@@ -114,7 +135,7 @@ args=f"python run.py \
   --enc_in 7 \
   --dec_in 1 \
   --c_out 1 \
-  --d_model 512 \
+  --d_model 64 \
   --embed surgicalF \
   --use_embed \
   --des Exp \

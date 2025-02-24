@@ -479,6 +479,10 @@ class VitalDBLoader(Dataset):
         time_label = self.data['window_sample_time'][index][-self.label_len:]
         time_pred = self.data['prediction_window_time'][index]
         seq_y_mark = np.concatenate([time_label[:, np.newaxis], time_pred[:, np.newaxis]], axis=0)
+
+        # 随机生成 seq_x_mark 和 seq_y_mark
+        seq_x_mark = np.random.rand(*seq_x.shape)
+        seq_y_mark = np.random.rand(*seq_y.shape)
         
         return seq_x, seq_y, seq_x_mark, seq_y_mark
 

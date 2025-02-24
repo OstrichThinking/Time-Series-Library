@@ -153,8 +153,8 @@ class DataEmbedding_inverted(nn.Module):
         if x_mark is None:
             x = self.value_embedding(x)
         else:
-            # x = self.value_embedding(torch.cat([x, x_mark.permute(0, 2, 1)], 1)) # [Batch, n_vars-1, seq_len] [Batch, n_vars, seq_len]
-            x = torch.cat([self.value_embedding(x), self.temporal_embedding(x_mark)], 1)
+            x = self.value_embedding(torch.cat([x, x_mark.permute(0, 2, 1)], 1)) # [Batch, n_vars-1, seq_len] [Batch, n_vars, seq_len]
+            # x = torch.cat([self.value_embedding(x), self.temporal_embedding(x_mark)], 1)
         # x: [Batch, Variate, d_model]
         return self.dropout(x)
 

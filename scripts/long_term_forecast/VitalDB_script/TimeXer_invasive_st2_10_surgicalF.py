@@ -25,6 +25,8 @@ import sys
     
     🌞实验结果:
         - 测试集 (V100): 
+        mse:46.5504035949707, mae:4.134771823883057, dtw:Not calculated
+        precision:0.9190915542938254, recall:0.3763440860215054, F1:0.534020618556701, accuracy:0.8948666061917057, specificity:0.9936861344188751, auc:0.6850151102201903
             
 """
 
@@ -52,7 +54,6 @@ static_features = ['caseid', 'sex', 'age', 'bmi']
 dynamic_features = [
                     'window_sample_time',                   # 观察窗口采样时间范围
                     'Solar8000/ART_DBP_window_sample',
-                    'Solar8000/ART_MBP_window_sample',
                     'Solar8000/ART_SBP_window_sample',
                     'Solar8000/BT_window_sample',
                     'Solar8000/HR_window_sample',
@@ -76,6 +77,7 @@ dynamic_features = [
                     'Solar8000/VENT_MV_window_sample',
                     'Solar8000/VENT_RR_window_sample',
                     'prediction_window_time',               # 预测窗口时间范围
+                    'Solar8000/ART_MBP_window_sample',   # TimeXer内生变量放在最后
                     'prediction_maap'] 
 static_features_str = ' '.join(static_features)
 dynamic_features_str = ' '.join(dynamic_features)

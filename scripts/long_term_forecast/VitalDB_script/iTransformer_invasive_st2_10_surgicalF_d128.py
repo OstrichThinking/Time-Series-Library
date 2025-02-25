@@ -4,7 +4,7 @@ import sys
 
 """
     🌟实验简述：
-        - 使用 TimeXer 模型，对 VitalDB 数据集进行长期预测。
+        - 使用 iTransformer 模型，对 VitalDB 数据集进行长期预测。
         - 450个点预测150个点
     
     🏠数据集：
@@ -13,7 +13,7 @@ import sys
         - 每隔2s取一个点，15min预测5min，滑动窗口步长20s
     
     🚀模型：
-        - TimeXer
+        - iTransformer
     
     🔍训练参数：
         - 训练轮数: 50
@@ -21,12 +21,21 @@ import sys
         - 学习率: 0.0001
     
     👋 实验后台启动命令
-        nohup python -u scripts/long_term_forecast/VitalDB_script/TimeXer_invasive_st2_10_nosurgicalF.py > checkpoints/TimeXer_invasive_st2_10_nosurgicalF.log 2>&1 &
+        nohup python -u scripts/long_term_forecast/VitalDB_script/iTransformer_invasive_st2_10_surgicalF_d128.py > checkpoints/iTransformer_invasive_st2_10_surgicalF_d128.log 2>&1 &
     
     🌞实验结果:
         - 测试集 (V100): 
-        mse:46.32651138305664, mae:4.121903419494629, dtw:Not calculated
-        precision:0.9242209631728046, recall:0.3792502179598954, F1:0.5378116628889347, accuracy:0.8956574326053078, specificity:0.9940738279194705, auc:0.6866620229396829
+        mse:48.724021911621094, mae:4.210161209106445, dtw:Not calculated
+        precision:0.8908242612752721, recall:0.41615809357744843, F1:0.567297216995147, accuracy:0.8983788058521155, specificity:0.9902799700922157, auc:0.703219031834832
+
+        - d_model=256, d_ff=256
+        mse:47.92493438720703, mae:4.174158573150635, dtw:Not calculated
+        precision:0.9081346423562412, recall:0.3763440860215054, F1:0.5321553318265873, accuracy:0.8940757797781034, specificity:0.9927445930602863, auc:0.6845443395408959
+
+        - d_model=128, d_ff=128
+        mse:47.82950973510742, mae:4.154483318328857, dtw:Not calculated
+        precision:0.9111876075731498, recall:0.3846265620459169, F1:0.540921630734648, accuracy:0.8954946154025074, specificity:0.992855362631885, auc:0.6887409623389009
+
             
 """
 
@@ -34,10 +43,9 @@ os.chdir("/home/zhud/fist/ioh/Time-Series-Library/")
 os.environ['CUDA_VISIBLE_DEVICES'] = '0,1,2,3'
 
 # 定义模型名称和路径
-model_name = 'TimeXer'
+model_name = 'iTransformer'
 task_name = 'long_term_forecast'
-model_id = 'TimeXer_invasive_st2_10_nosurgicalF'
-
+model_id = 'iTransformer_invasive_st2_10_surgicalF_d128'
 
 root_path = '/home/share/ioh/VitalDB_IOH/ioh_dataset_with_medication/'
 data_path = 'vitaldb_ioh_dataset_with_medication_invasive_group.csv'
@@ -46,7 +54,6 @@ seq_len = 450   # 预测窗口数据点数
 label_len = 225 # 预测窗口加入label数据的点数
 pred_len = 150  # 预测窗口数据点数
 stime = 20      # 采样间隔
-
 
 static_features = ['caseid', 'sex', 'age', 'bmi']  
 dynamic_features = [
@@ -96,26 +103,28 @@ args=f"python run.py \
   --features MS \
   --static_features {static_features_str} \
   --dynamic_features {dynamic_features_str} \
+  --freq s \
   --seq_len {seq_len} \
   --label_len {label_len} \
   --pred_len {pred_len} \
-  --stime {stime} \
   --e_layers 3 \
+  --d_layers 1 \
   --factor 3 \
   --enc_in 23 \
   --dec_in 23 \
   --c_out 1 \
   --embed surgicalF \
+  --use_embed \
   --des Exp \
-  --d_model 256 \
-  --d_ff 512 \
+  --d_model 128\
+  --d_ff 128\
   --itr 1 \
-  --batch_size 64 \
   --train_epochs 50 \
-  --num_workers 32 \
+  --num_workers 10 \
+  --batch_size 64 \
   --use_multi_gpu \
   --devices 0,1,2,3 \
-  --inverse"
+  --inverse"           # 测试时是否恢复
 
 
 args = args.split()

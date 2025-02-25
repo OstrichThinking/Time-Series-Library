@@ -354,7 +354,8 @@ class VitalDBLoader(Dataset):
         columns_to_read = self.static_features + self.dynamic_features
         df_raw = pd.read_csv(
             os.path.join(self.root_path, str(self.data_path)), 
-            usecols=columns_to_read)    # 调试时添加，nrows=5000
+            usecols=columns_to_read,
+            nrows=3000)    # 调试时添加，nrows=3000
 
         # 按照caseid进行拆分，确保同一caseid的样本不会出现在不同的数据集中
         unique_caseids = df_raw['caseid'].unique()

@@ -317,7 +317,7 @@ class Exp_Long_Term_Forecast(Exp_Basic):
         print("|{:^20}|{:^20}|{:^20}|".format(mse, mae, dtw))
         print("+" + "-"*20 + "+" + "-"*20 + "+" + "-"*20 + "+")
 
-        auc, accuracy, recall, precision, specificity, F1 = ioh_classification_metric(preds, trues, stime=self.args.stime)
+        auc, accuracy, recall, precision, specificity, F1, TP, FP, FN, TN = ioh_classification_metric(preds, trues, stime=self.args.stime)
         print("模型分类性能比较:")
         print("+" + "-"*20 + "+" + "-"*20 + "+" + "-"*20 + "+")
         print("|{:^20}|{:^20}|{:^20}|".format("AUC", "Accuracy", "Recall"))
@@ -329,6 +329,8 @@ class Exp_Long_Term_Forecast(Exp_Basic):
         print("+" + "-"*20 + "+" + "-"*20 + "+" + "-"*20 + "+")
         print("|{:^20}|{:^20}|{:^20}|".format(precision, specificity, F1))
         print("+" + "-"*20 + "+" + "-"*20 + "+" + "-"*20 + "+")
+        print("|{:^20}|{:^20}|{:^20}|".format(TP, FN, None))
+        print("|{:^20}|{:^20}|{:^20}|".format(FP, TN, None))
         
         time_now = time.time()
         print(f"Test completion time: {time.strftime('%Y年%m月%d日 %H:%M:%S', time.localtime(time_now))}")

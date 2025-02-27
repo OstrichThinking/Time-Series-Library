@@ -5,8 +5,10 @@ import numpy as np
 
 from layers.Embed import PositionalEmbedding, TemporalEmbedding, TimeFeatureEmbedding
 
+# TODO 位置编码，卷积npe
+
 class PositionalEncoding(nn.Module):
-    def __init__(self, d_model=64, max_len=1000):  # 与实验一致
+    def __init__(self, d_model=64, max_len=1000):  # TODO 论文说的d=7是什么意思
         super(PositionalEncoding, self).__init__()
         # 初始化位置编码张量，形状为 [max_len, d_model]
         pe = torch.zeros(max_len, d_model)  # [1000, 64]
@@ -88,10 +90,14 @@ class Model(nn.Module):
         self.modality_embedding = nn.Linear(self.modality_input_dim, self.d_model)  # 4 -> 64
         # 位置编码模块
         self.pos_encoding = PositionalEncoding(self.d_model)
+        # 时间特征嵌入
+        self.temporal_embedding = TemporalEmbedding(d_model=args.d_model, embed_type=args.embed,
+                                                    freq=args.freq) if args.embed != 'timeF' else TimeFeatureEmbedding(
+            d_model=args.d_model, embed_type=args.embed, freq=args.freq)
         # 多头注意力模块
         self.attention = MultiAttention(self.d_model, self.n_heads, self.dropout)
         n_indicators = 7  # 指标总数（3静态+4动态）
-        n_pe = 7  # 位置编码维度
+        n_pe = 7  # TODO 论文说的所有序列的位置编码大小是什么意思
         # 第一个卷积层，输入通道为 n_modalities * d_model，输出通道为 (n_indicators + n_pe) // 2
         self.conv1 = nn.Conv1d(self.n_modalities * self.d_model, (n_indicators + n_pe) // 2, kernel_size=3, padding=1)  # 256 -> 7
         # 第二个卷积层
@@ -124,8 +130,10 @@ class Model(nn.Module):
             modality = torch.cat([dynamic[:, :, i:i+1], static], dim=-1)  # [64, 30, 1] + [64, 30, 3] = [64, 30, 4]
             # 嵌入到 d_model 维度
             modality = self.modality_embedding(modality)  # [64, 30, 64]
-            # 添加位置编码
-            modality = self.pos_encoding(modality)  # [64, 30, 64]
+            if x_mark is None:
+                modality = self.pos_encoding(modality)  # [64, 30, 64] 直接添加位置编码
+            else:
+                modality = self.pos_encoding(modality) + self.temporal_embedding(x_mark)    # 添加位置编码+时间编码
             modalities.append(modality)
         
         # 堆叠 4 个模态

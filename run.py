@@ -36,6 +36,8 @@ if __name__ == '__main__':
     parser.add_argument('--swan_workspace', type=str, required=True, default='user_name', help='swan workspace')
 
     # data loader
+    parser.add_argument('--augment_method', type=str, default=None,
+                        help='augmentation method, support smote, undersample, cost_sensitive')
     parser.add_argument('--data', type=str, required=True, default='ETTh1', help='dataset type')
     parser.add_argument('--root_path', type=str, default='./data/ETT/', help='root path of the data file')
     parser.add_argument('--data_path', type=str, default='ETTh1.csv', help='data file')

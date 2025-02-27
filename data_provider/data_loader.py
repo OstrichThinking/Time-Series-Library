@@ -7,6 +7,7 @@ import torch
 import ast
 from torch.utils.data import Dataset, DataLoader
 from sklearn.preprocessing import StandardScaler
+from data_augmentor.oversample_minority import OversampleMinorityDataBalancer
 from utils.timefeatures import time_features
 from data_provider.m4 import M4Dataset, M4Meta
 from data_provider.uea import subsample, interpolate_missing, Normalizer
@@ -340,6 +341,9 @@ class VitalDBLoader(Dataset):
 
         self.root_path = root_path
         self.data_path = data_path
+        
+        # 数据增强器
+        # self.data_augmentor = DataAugmentor(args, X=defaultdict(list))
 
         # Initialize scalers for each feature to be standardized
         self.scalers = {feature: StandardScaler() for feature in self.static_features if feature != 'caseid' and feature != 'sex'}
@@ -416,7 +420,13 @@ class VitalDBLoader(Dataset):
                     examples[feature].append(pred_time_array)
                 else:
                     examples[feature].append(np.array(parse_sequence(row[feature])))
-
+        
+        if self.args.augment_method is not None and self.set_type == 0:
+            print("Augmenting data...")
+            if self.args.augment_method == 'oversample_minority':
+                self.data_augmentor = OversampleMinorityDataBalancer(self.args, X=examples, method=self.args.augment_method)
+            examples, _ = self.data_augmentor.augment(examples)            
+        
         if self.scale and self.set_type == 0:
             print("Fitting scalers on training data...")
             for feature in self.static_features:

@@ -7,29 +7,35 @@ from layers.Embed import PositionalEmbedding, TemporalEmbedding, TimeFeatureEmbe
 
 # TODO 位置编码，卷积npe
 
-class PositionalEncoding(nn.Module):
-    def __init__(self, d_model=64, max_len=1000):  # TODO 论文说的d=7是什么意思
+import torch
+import numpy as np
+
+class PositionalEncoding(torch.nn.Module):
+    def __init__(self, d_model=7, max_len=1000):  # 根据文本将 d_model 设置为 7
         super(PositionalEncoding, self).__init__()
         # 初始化位置编码张量，形状为 [max_len, d_model]
-        pe = torch.zeros(max_len, d_model)  # [1000, 64]
+        pe = torch.zeros(max_len, d_model)  # [1000, 7]
         # 生成位置索引 [0, 1, ..., max_len-1]，增加维度为 [max_len, 1]
         position = torch.arange(0, max_len, dtype=torch.float).unsqueeze(1)  # [1000] -> [1000, 1]
         # 计算频率项，用于正弦和余弦函数，长度为 d_model//2
-        div_term = torch.exp(torch.arange(0, d_model, 2).float() * (-np.log(10000.0) / d_model))  # [32]
+        # 调整 div_term 以匹配 w_k = 1 / 10000^(2k/d)
+        div_term = torch.pow(10000, torch.arange(0, d_model, 2).float() * (2.0 / d_model))  # [d_model//2]
         # 偶数列填充正弦值
-        pe[:, 0::2] = torch.sin(position * div_term)  # [1000, 32]
+        pe[:, 0::2] = torch.sin(position * div_term)  # [1000, d_model//2]
         # 奇数列填充余弦值，确保维度匹配
-        pe[:, 1::2] = torch.cos(position * div_term[:d_model//2])  # [1000, 32]
+        pe[:, 1::2] = torch.cos(position * div_term[:d_model//2])  # [1000, d_model//2]
         # 增加批次维度，变为 [1, max_len, d_model]
-        pe = pe.unsqueeze(0)  # [1, 1000, 64]
+        pe = pe.unsqueeze(0)  # [1, 1000, 7]
         # 注册为缓冲区，不参与梯度计算
         self.register_buffer('pe', pe)
 
     def forward(self, x):
-        # 输入 x: [batch_size, seq_len, d_model]，如 [64, 30, 64]
+        # 输入 x: [batch_size, seq_len, d_model]，如 [64, 30, 7]
         seq_len = x.size(1)  # 获取序列长度，例如 30
-        # 将位置编码加到输入上，pe 截取前 seq_len 个位置，[1, 30, 64] 广播到 [64, 30, 64]
-        return x + self.pe[:, :seq_len, :].to(x.device)  # 输出: [64, 30, 64]
+        # 将位置编码加到输入上，pe 截取前 seq_len 个位置，[1, 30, 7] 广播到 [64, 30, 7]
+        return x + self.pe[:, :seq_len, :].to(x.device)  # 输出: [64, 30, 7]
+
+
 
 class MultiAttention(nn.Module):
     def __init__(self, d_model=64, n_heads=8, dropout=0.1):

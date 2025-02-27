@@ -22,7 +22,7 @@ import sys
         - 学习率: 0.0001
     
     👋 实验后台启动命令
-        nohup python -u scripts/long_term_forecast/VitalDB_script/Transformer_noninvasive_st30_5_surgicalF.py > checkpoints/output_Transformer_noninvasive_st30_5_surgicalF.log 2>&1 &
+        nohup python -u scripts/long_term_forecast/VitalDB_script/Transformer_noninvasive_st30_5_surgicalF_oversampleM.py > checkpoints/output_Transformer_noninvasive_st30_5_surgicalF_oversampleM.log 2>&1 &
     
     🌞实验结果:
         - 测试集 (V100): mse:63.4347038269043, mae:5.252523422241211
@@ -52,15 +52,18 @@ data_path = 'ioh_dataset_noninvasive_st30_5.csv'
 # TODO定义IOH需要处理的静态特征和波形数据
 static_features = ['caseid', 'sex', 'age', 'bmi']  
 dynamic_features = ['window_sample_time',                   # 观察窗口采样时间范围
-                    'Solar8000/NIBP_DBP_window_sample',     # 无创舒张压         
-                    'Solar8000/NIBP_MBP_window_sample',     # 无创平均动脉压         
+                    'Solar8000/NIBP_DBP_window_sample',     # 无创舒张压
+                    'Solar8000/NIBP_MBP_window_sample',     # 无创平均动脉压
                     'Solar8000/BT_window_sample',           # 体温
-                    'Solar8000/HR_window_sample',           # 心率          
+                    'Solar8000/HR_window_sample',           # 心率
                     'prediction_window_time',               # 预测窗口时间范围
                     'prediction_maap']                      # 需要预测的有创/无创平均动脉压
 
 static_features_str = ' '.join(static_features)
 dynamic_features_str = ' '.join(dynamic_features)
+
+# TODO 定义数据增强方法
+augment_method = 'oversample_minority'
 
 # TODO 定义swanlab
 swan_project='tsl'
@@ -77,6 +80,7 @@ args=f"python run.py \
   --swan_workspace {swan_workspace} \
   --data VitalDB \
   --features MS \
+  --augment_method {augment_method} \
   --static_features {static_features_str} \
   --dynamic_features {dynamic_features_str} \
   --freq s \

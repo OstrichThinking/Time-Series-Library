@@ -6,7 +6,9 @@ import sys
     🌟实验简述：
         - 使用 AHCformer 模型，对 VitalDB 数据集进行长期预测。
         - 450个点预测150个点
-    
+        - 外生变量编码使用Linear替换LSTM性能测试
+        
+
     🏠数据集：
         - vitaldb_ioh_dataset_with_medication_invasive_group.csv
         - 有创组，总计 1840 个cases
@@ -21,22 +23,50 @@ import sys
         - 学习率: 0.0001
     
     👋 实验后台启动命令
-        nohup python -u scripts/long_term_forecast/VitalDB_script/AHCformer_invasive_st2_10_debug.py > checkpoints/AHCformer_invasive_st2_10_debug.log 2>&1 &
+        nohup python -u scripts/long_term_forecast/VitalDB_script/AHCformer_invasive_st2_10_nosurgicalF_liner.py > checkpoints/AHCformer_invasive_st2_10_nosurgicalF_liner.log 2>&1 &
     
     🌞实验结果:
         - 测试集 (V100): 
-     
+        模型性能比较:
+        +--------------------+--------------------+--------------------+
+        |        MSE         |        MAE         |        DTW         |
+        +--------------------+--------------------+--------------------+
+        | 47.917823791503906 | 4.204183578491211  |   Not calculated   |
+        +--------------------+--------------------+--------------------+
+        模型分类性能比较:
+        +--------------------+--------------------+--------------------+
+        |        AUC         |      Accuracy      |       Recall       |
+        +--------------------+--------------------+--------------------+
+        | 0.9181884587289992 | 0.3653007846556234 | 0.5226611226611227 |
+        +--------------------+--------------------+--------------------+
+        +--------------------+--------------------+--------------------+
+        |     Precision      |    Specificity     |         F1         |
+        +--------------------+--------------------+--------------------+
+        | 0.893191914962901  | 0.9937969039904738 | 0.6795488443230486 |
+        +--------------------+--------------------+--------------------+
+        +--------------------+--------------------+--------------------+
+        混淆矩阵:
+        +--------------------+--------------------+--------------------+
+        |         TP         |         FN         |         --         |
+        +--------------------+--------------------+--------------------+
+        |        2514        |        4368        |         --         |
+        +--------------------+--------------------+--------------------+
+        |         FP         |         TN         |         --         |
+        +--------------------+--------------------+--------------------+
+        |        224         |       35887        |         --         |
+        +--------------------+--------------------+--------------------+
+ 
 """
 
 os.chdir("/home/zhud/fist/ioh/Time-Series-Library/")
 
 # 设置只使用一张 GPU
-os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+os.environ['CUDA_VISIBLE_DEVICES'] = '0,1,2,3'
 
 # 定义模型名称和路径
 model_name = 'AHCformer'
 task_name = 'long_term_forecast'
-model_id = 'AHCformer_invasive_st2_10_debug'
+model_id = 'AHCformer_invasive_st2_10_nosurgicalF_liner'
 
 
 root_path = '/home/share/ioh/VitalDB_IOH/ioh_dataset_with_medication/'
@@ -110,11 +140,11 @@ args=f"python run.py \
   --d_model 256 \
   --d_ff 512 \
   --itr 1 \
-  --batch_size 4 \
-  --train_epochs 1 \
+  --batch_size 64 \
+  --train_epochs 50 \
   --num_workers 10 \
   --use_multi_gpu \
-  --devices 0 \
+  --devices 0,1,2,3 \
   --inverse"
 
 

@@ -220,7 +220,6 @@ class Model(nn.Module):
          # [B, patch_num, n_vars-1]
         channel_gates = F.softmax(channel_similarity, dim=-1)
 
-        # TODO: 讨论是矩阵相乘还是逐元素相乘
         # [B, n_vars-1, d_model]
         # gated_ex_glb_out = ex_glb_out * channel_gates.unsqueeze(-1)
         # [B, patch_num, d_model]

@@ -161,8 +161,8 @@ class DataEmbedding_inverted(nn.Module):
 class DataEmbedding_inverted_lstm(nn.Module):
     def __init__(self, c_in, d_model, embed_type='fixed', freq='h', dropout=0.1):
         super(DataEmbedding_inverted_lstm, self).__init__()
-        # self.value_embedding = nn.Linear(c_in, d_model) 换为LSTM
-        self.value_embedding = nn.LSTM(c_in, d_model, batch_first=True)
+        self.value_embedding = nn.Linear(c_in, d_model)     
+        # self.value_embedding = nn.LSTM(c_in, d_model, batch_first=True)
 
         self.temporal_embedding = TemporalEmbedding(d_model=d_model, embed_type=embed_type,
                                                     freq=freq) if embed_type != 'timeF' else TimeFeatureEmbedding(
@@ -174,11 +174,11 @@ class DataEmbedding_inverted_lstm(nn.Module):
         x = x.permute(0, 2, 1)
         
         if x_mark is None:
-            x, _ = self.value_embedding(x)
+            x = self.value_embedding(x)
         else:
             x_mark = x_mark.permute(0, 2, 1)
             # x = self.value_embedding(torch.cat([x, x_mark.permute(0, 2, 1)], 1)) # [Batch, n_vars-1, seq_len] [Batch, n_vars, seq_len]
-            x, _ = self.value_embedding(x) # lstm_out: [Batch, n_vars-1, d_model]
+            x = self.value_embedding(x) # lstm_out: [Batch, n_vars-1, d_model]
             
             # x_mark_out: [Batch, seq_len, d_model]
             # x_mark_out = self.temporal_embedding(x_mark)

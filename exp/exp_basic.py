@@ -4,7 +4,7 @@ import swanlab
 from models import Autoformer, Transformer, TimesNet, Nonstationary_Transformer, DLinear, FEDformer, \
     Informer, LightTS, Reformer, ETSformer, Pyraformer, PatchTST, MICN, Crossformer, FiLM, iTransformer, \
     Koopa, TiDE, FreTS, TimeMixer, TSMixer, SegRNN, MambaSimple, TemporalFusionTransformer, SCINet, PAttn, TimeXer, \
-    WPMixer, MultiPatchFormer, CMA
+    WPMixer, MultiPatchFormer, CMA, AHCformer
 
 
 class Exp_Basic(object):
@@ -18,6 +18,7 @@ class Exp_Basic(object):
         )
         
         self.model_dict = {
+            'AHCformer': AHCformer,
             'TimesNet': TimesNet,
             'Autoformer': Autoformer,
             'Transformer': Transformer,

@@ -21,24 +21,22 @@ import sys
         - 学习率: 0.0001
     
     👋 实验后台启动命令
-        nohup python -u scripts/long_term_forecast/VitalDB_script/TimeXer_invasive_st2_10_surgicalF.py > checkpoints/TimeXer_invasive_st2_10_surgicalF.log 2>&1 &
+        nohup python -u scripts/long_term_forecast/VitalDB_script/TimeXer_invasive_st2_10_nosurgicalF.py > checkpoints/TimeXer_invasive_st2_10_nosurgicalF.log 2>&1 &
     
     🌞实验结果:
         - 测试集 (V100): 
-        mse:46.5504035949707, mae:4.134771823883057, dtw:Not calculated
-        precision:0.9190915542938254, recall:0.3763440860215054, F1:0.534020618556701, accuracy:0.8948666061917057, specificity:0.9936861344188751, auc:0.6850151102201903
+        mse:46.32651138305664, mae:4.121903419494629, dtw:Not calculated
+        precision:0.9242209631728046, recall:0.3792502179598954, F1:0.5378116628889347, accuracy:0.8956574326053078, specificity:0.9940738279194705, auc:0.6866620229396829
             
 """
 
 os.chdir("/home/zhud/fist/ioh/Time-Series-Library/")
-
-# 设置只使用一张 GPU
 os.environ['CUDA_VISIBLE_DEVICES'] = '0,1,2,3'
 
 # 定义模型名称和路径
 model_name = 'TimeXer'
 task_name = 'long_term_forecast'
-model_id = 'TimeXer_invasive_st2_10_surgicalF'
+model_id = 'TimeXer_invasive_st2_10_nosurgicalF'
 
 
 root_path = '/home/share/ioh/VitalDB_IOH/ioh_dataset_with_medication/'
@@ -108,7 +106,6 @@ args=f"python run.py \
   --dec_in 23 \
   --c_out 1 \
   --embed surgicalF \
-  --use_embed \
   --des Exp \
   --d_model 256 \
   --d_ff 512 \

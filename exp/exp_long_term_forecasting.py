@@ -310,10 +310,25 @@ class Exp_Long_Term_Forecast(Exp_Basic):
             dtw = 'Not calculated'
 
         mae, mse, rmse, mape, mspe = metric(preds, trues)
-        print('mse:{}, mae:{}, dtw:{}'.format(mse, mae, dtw))
+        print("模型性能比较:")
+        print("+" + "-"*20 + "+" + "-"*20 + "+" + "-"*20 + "+")
+        print("|{:^20}|{:^20}|{:^20}|".format("MSE", "MAE", "DTW"))
+        print("+" + "-"*20 + "+" + "-"*20 + "+" + "-"*20 + "+")
+        print("|{:^20}|{:^20}|{:^20}|".format(mse, mae, dtw))
+        print("+" + "-"*20 + "+" + "-"*20 + "+" + "-"*20 + "+")
 
-        precision, recall, F1, accuracy, specificity, auc = ioh_classification_metric(preds, trues, stime=self.args.stime)
-        print('precision:{}, recall:{}, F1:{}, accuracy:{}, specificity:{}, auc:{}'.format(precision, recall, F1, accuracy, specificity, auc))
+        auc, accuracy, recall, precision, specificity, F1 = ioh_classification_metric(preds, trues, stime=self.args.stime)
+        print("模型分类性能比较:")
+        print("+" + "-"*20 + "+" + "-"*20 + "+" + "-"*20 + "+")
+        print("|{:^20}|{:^20}|{:^20}|".format("AUC", "Accuracy", "Recall"))
+        print("+" + "-"*20 + "+" + "-"*20 + "+" + "-"*20 + "+")
+        print("|{:^20}|{:^20}|{:^20}|".format(auc, accuracy, recall))
+        print("+" + "-"*20 + "+" + "-"*20 + "+" + "-"*20 + "+")
+        print("+" + "-"*20 + "+" + "-"*20 + "+" + "-"*20 + "+")
+        print("|{:^20}|{:^20}|{:^20}|".format("Precision", "Specificity", "F1"))
+        print("+" + "-"*20 + "+" + "-"*20 + "+" + "-"*20 + "+")
+        print("|{:^20}|{:^20}|{:^20}|".format(precision, specificity, F1))
+        print("+" + "-"*20 + "+" + "-"*20 + "+" + "-"*20 + "+")
         
         time_now = time.time()
         print(f"Test completion time: {time.strftime('%Y年%m月%d日 %H:%M:%S', time.localtime(time_now))}")

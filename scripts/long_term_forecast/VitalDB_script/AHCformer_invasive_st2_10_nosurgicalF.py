@@ -4,7 +4,7 @@ import sys
 
 """
     🌟实验简述：
-        - 使用 TimeXer 模型，对 VitalDB 数据集进行长期预测。
+        - 使用 AHCformer 模型，对 VitalDB 数据集进行长期预测。
         - 450个点预测150个点
     
     🏠数据集：
@@ -13,7 +13,7 @@ import sys
         - 每隔2s取一个点，15min预测5min，滑动窗口步长20s
     
     🚀模型：
-        - TimeXer
+        - AHCformer
     
     🔍训练参数：
         - 训练轮数: 50
@@ -21,13 +21,11 @@ import sys
         - 学习率: 0.0001
     
     👋 实验后台启动命令
-        nohup python -u scripts/long_term_forecast/VitalDB_script/TimeXer_invasive_st2_10_surgicalF.py > checkpoints/TimeXer_invasive_st2_10_surgicalF.log 2>&1 &
+        nohup python -u scripts/long_term_forecast/VitalDB_script/AHCformer_invasive_st2_10_nosurgicalF.py > checkpoints/AHCformer_invasive_st2_10_nosurgicalF.log 2>&1 &
     
     🌞实验结果:
         - 测试集 (V100): 
-        mse:46.5504035949707, mae:4.134771823883057, dtw:Not calculated
-        precision:0.9190915542938254, recall:0.3763440860215054, F1:0.534020618556701, accuracy:0.8948666061917057, specificity:0.9936861344188751, auc:0.6850151102201903
-            
+     
 """
 
 os.chdir("/home/zhud/fist/ioh/Time-Series-Library/")
@@ -36,9 +34,9 @@ os.chdir("/home/zhud/fist/ioh/Time-Series-Library/")
 os.environ['CUDA_VISIBLE_DEVICES'] = '0,1,2,3'
 
 # 定义模型名称和路径
-model_name = 'TimeXer'
+model_name = 'AHCformer'
 task_name = 'long_term_forecast'
-model_id = 'TimeXer_invasive_st2_10_surgicalF'
+model_id = 'AHCformer_invasive_st2_10_nosurgicalF'
 
 
 root_path = '/home/share/ioh/VitalDB_IOH/ioh_dataset_with_medication/'
@@ -108,14 +106,13 @@ args=f"python run.py \
   --dec_in 23 \
   --c_out 1 \
   --embed surgicalF \
-  --use_embed \
   --des Exp \
   --d_model 256 \
   --d_ff 512 \
   --itr 1 \
   --batch_size 64 \
   --train_epochs 50 \
-  --num_workers 32 \
+  --num_workers 10 \
   --use_multi_gpu \
   --devices 0,1,2,3 \
   --inverse"

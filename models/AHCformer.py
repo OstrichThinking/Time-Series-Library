@@ -2,9 +2,131 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from layers.SelfAttention_Family import FullAttention, AttentionLayer
-from layers.Embed import DataEmbedding_inverted, PositionalEmbedding
+from layers.Embed import DataEmbedding_inverted_lstm, PositionalEmbedding
 import numpy as np
+
+class Encoder(nn.Module):
+    def __init__(self, layers, norm_layer=None, projection=None):
+        super(Encoder, self).__init__()
+        self.layers = nn.ModuleList(layers)
+        self.norm = norm_layer
+        self.projection = projection
+
+    def forward(self, x, cross=None, x_mask=None, cross_mask=None, tau=None, delta=None):
+        for layer in self.layers:
+            x = layer(x, cross, x_mask=x_mask, cross_mask=cross_mask, tau=tau, delta=delta)
+
+        if self.norm is not None:
+            x = self.norm(x)
+
+        if self.projection is not None:
+            x = self.projection(x)
+        return x
     
+class GlbEncoderLayer(nn.Module):
+    def __init__(self, self_attention, cross_attention, d_model, d_ff=None,
+                 dropout=0.1, activation="relu"):
+        super(GlbEncoderLayer, self).__init__()
+        self.self_attention = self_attention
+        self.norm = nn.LayerNorm(d_model)
+        self.dropout = nn.Dropout(dropout)
+
+    def forward(self, x, cross, x_mask=None, cross_mask=None, tau=None, delta=None):
+       
+        # 计算自注意力
+        self_attn_output = self.self_attention(
+            x, x, x, 
+            attn_mask=x_mask,
+            tau=tau, delta=None
+        )[0]
+        
+        # Dropout
+        self_attn_output = self.dropout(self_attn_output)
+        
+        # 残差连接
+        x = x + self_attn_output
+        
+        # Layer Norm
+        x = self.norm(x)
+
+        return x
+
+class EncoderLayer(nn.Module):
+    def __init__(self, self_attention, cross_attention, d_model, d_ff=None,
+                 dropout=0.1, activation="relu"):
+        super(EncoderLayer, self).__init__()
+        d_ff = d_ff or 4 * d_model
+        self.cross_attention = cross_attention
+        self.norm = nn.LayerNorm(d_model)
+        self.dropout = nn.Dropout(dropout)
+
+    def forward(self, x, cross, x_mask=None, cross_mask=None, tau=None, delta=None):
+        B, L, D = cross.shape
+
+        # 计算内生变量与加权全局注意力
+        # Q, K, V : x, cross, cross
+        # 计算交叉注意力
+        cross_attn_output = self.cross_attention(
+            x, cross, cross,
+            attn_mask=cross_mask,
+            tau=tau, delta=delta
+        )[0]
+        
+        # Dropout
+        cross_attn_output = self.dropout(cross_attn_output)
+        
+        # 残差连接
+        x = x + cross_attn_output
+        
+        # Layer Norm
+        x = self.norm(x)
+        return x
+
+class EnEmbedding(nn.Module):
+    def __init__(self, n_vars, d_model, patch_len, dropout):
+        super(EnEmbedding, self).__init__()
+        # Patching
+        self.patch_len = patch_len
+
+        self.value_embedding = nn.Linear(patch_len, d_model, bias=False)
+        self.glb_token = nn.Parameter(torch.randn(1, n_vars, 1, d_model))
+        self.position_embedding = PositionalEmbedding(d_model)
+
+        self.dropout = nn.Dropout(dropout)
+
+    # TODO: 明确glb_token的作用或更加有效的利用glb_token
+    def forward(self, x):
+        # do patching 将每个变量进行patching
+        n_vars = x.shape[1]
+        glb = self.glb_token.repeat((x.shape[0], 1, 1, 1))
+
+        # x: [B, 1, seq_len]
+        x = x.unfold(dimension=-1, size=self.patch_len, step=self.patch_len)
+        # x: [B，1, patch_num, patch_len]
+        x = torch.reshape(x, (x.shape[0] * x.shape[1], x.shape[2], x.shape[3]))
+        # x: [B, patch_num, patch_len]
+        x = self.value_embedding(x) + self.position_embedding(x)
+        # x: [B, patch_num, d_model]
+        x = torch.reshape(x, (-1, n_vars, x.shape[-2], x.shape[-1]))
+        # x: [B, 1, patch_num, d_model]
+        x = torch.cat([x, glb], dim=2)
+        # x: [B, patch_num + 1, d_model]
+        x = torch.reshape(x, (x.shape[0] * x.shape[1], x.shape[2], x.shape[3]))
+        return self.dropout(x), n_vars
+    
+class FlattenHead(nn.Module):
+    def __init__(self, n_vars, nf, target_window, head_dropout=0):
+        super().__init__()
+        self.n_vars = n_vars
+        self.flatten = nn.Flatten(start_dim=-2)
+        self.linear = nn.Linear(nf, target_window)
+        self.dropout = nn.Dropout(head_dropout)
+
+    def forward(self, x):  # x: [bs x nvars x d_model x patch_num]
+        x = self.flatten(x)
+        x = self.linear(x)
+        x = self.dropout(x)
+        return x
 
 class Model(nn.Module):
 
@@ -20,90 +142,101 @@ class Model(nn.Module):
         self.n_vars = 1 if configs.features == 'MS' else configs.enc_in
         self.hidden_dim = configs.d_model
 
-        # 1. 个体特征提取模块 (使用 1D CNN)
-        self.encoders = nn.ModuleList([
-            nn.Conv1d(1, configs.d_model, kernel_size=3, padding=1)  # 输入通道为 1
-            for _ in range(self.n_vars)
-        ])
+        # TODO: 讨论 patch_embedding 和 variable-length embedding 的优劣
+        self.en_embedding = EnEmbedding(self.n_vars, configs.d_model, self.patch_len, configs.dropout)
 
-        # 2. 自适应关系选择模块
-        # 全局注意力机制 (共享全局上下文)
-        self.global_attention = nn.MultiheadAttention(configs.d_model, configs.n_heads, dropout=configs.dropout)
-
-        # MLP 预测 Ki
-        self.mlp_k = nn.Sequential(
-            nn.Linear(configs.d_model * 2, configs.d_model),
-            nn.ReLU(),
-            nn.Linear(configs.d_model, 1)
+        # TODO: 讨论 使用 LSTM, CNN, Linear 的优劣
+        self.ex_embedding = DataEmbedding_inverted_lstm(configs.seq_len, configs.d_model, configs.embed, configs.freq,
+                                                    configs.dropout)
+        
+        # TODO: 讨论单层 Attention 和 Multi-Attention 之间的优劣
+        self.ex_glb_encoder = Encoder(
+            [
+                GlbEncoderLayer(
+                    self_attention=AttentionLayer(
+                        FullAttention(False, configs.factor, attention_dropout=configs.dropout,
+                                      output_attention=False), configs.d_model, configs.n_heads),
+                    cross_attention=None,
+                    d_model=configs.d_model,
+                    d_ff=configs.d_ff,
+                    dropout=configs.dropout,
+                    activation=configs.activation
+                ) for l in range(configs.e_layers)
+            ],
+            norm_layer=torch.nn.LayerNorm(configs.d_model)
         )
-        # 计算 Si 的线性层
-        self.correlation_layer = nn.Linear(configs.d_model * 2, self.n_vars)
 
-        # 3. 关系融合模块 (局部 Transformer)
-        self.local_transformer = nn.TransformerEncoder(
-            nn.TransformerEncoderLayer(configs.d_model, configs.n_heads, dim_feedforward=configs.d_model*2, dropout=configs.dropout),
-            num_layers=1
+        self.encoder = Encoder(
+            [
+                EncoderLayer(
+                    AttentionLayer(
+                        FullAttention(False, configs.factor, attention_dropout=configs.dropout,
+                                      output_attention=False),
+                        configs.d_model, configs.n_heads),
+                    AttentionLayer(
+                        FullAttention(False, configs.factor, attention_dropout=configs.dropout,
+                                      output_attention=False),
+                        configs.d_model, configs.n_heads),
+                    configs.d_model,
+                    configs.d_ff,
+                    dropout=configs.dropout,
+                    activation=configs.activation,
+                )
+                for l in range(configs.e_layers)
+            ],
+            norm_layer=torch.nn.LayerNorm(configs.d_model)
         )
-        # 预测头 (输出 pred_len 步)
-        self.predictor = nn.Linear(configs.d_model, configs.pred_len)
+
+        self.head_nf = configs.d_model * (self.patch_num + 1)
+        self.head = FlattenHead(configs.enc_in, self.head_nf, configs.pred_len,
+                                head_dropout=configs.dropout)
+
 
     
     def forward(self, x_enc, x_mark_enc, x_dec, x_mark_dec):
-        """
-        前向传播
-        参数:
-            x (torch.Tensor): 输入张量，形状为 (batch_size, seq_len, n_channel)
-        返回:
-            output (torch.Tensor): 预测结果，形状为 (batch_size, pred_len, 1)
-        """
-        batch_size, seq_len, n_channel = x_enc.size()
+        # x_enc: [B, L, D] [64, 450, 23]
+        # x_mark_enc: [B, L, D] [64, 450, 1]
+        
+        if self.use_norm:
+            # Normalization from Non-stationa
+            means = x_enc.mean(1, keepdim=True).detach()
+            x_enc = x_enc - means
+            stdev = torch.sqrt(torch.var(x_enc, dim=1, keepdim=True, unbiased=False) + 1e-5)
+            x_enc /= stdev
+        _, _, N = x_enc.shape
+        
+        # 内生变量 'Solar8000/ART_MBP_window_sample' 做细粒度的patch_embedding en_embed: [B, patch_num + 1, d_model] eg.[64, 29, 256]
+        en_embed, n_vars = self.en_embedding(x_enc[:, :, -1].unsqueeze(-1).permute(0, 2, 1))
 
-        # 1. 个体特征提取
-        h = torch.zeros(batch_size, n_channel, self.hidden_dim, seq_len).to(x_enc.device)
-        for i in range(n_channel):
-            # 对每个通道独立应用 CNN
-            xi = x_enc[:, :, i].unsqueeze(1)  # (batch, 1, seq_len)
-            hi = self.encoders[i](xi)  # (batch, hidden_dim, seq_len)
-            h[:, i, :, :] = hi.permute(0, 2, 1)  # (batch, seq_len, hidden_dim)
+        # 外生变量 使用 variable-length embedding [B, n_vars-1, d_model]
+        ex_embed = self.ex_embedding(x_enc[:, :, :-1], x_mark_enc)
 
-        # 取最后一时间步的特征
-        h_last = h[..., -1]  # (batch, n_channel, hidden_dim)
+        # 计算外生变量的全局上下文 ex_glb_out: [B, n_vars-1, d_model]
+        ex_glb_out = self.ex_glb_encoder(ex_embed, ex_embed)
+        ex_glb_out = ex_glb_out.permute(0,2,1)
 
-        # 2. 自适应关系选择
-        # 共享全局上下文 (batch_first=True)
-        C, _ = self.global_attention(h_last, h_last, h_last)  # (batch, n_channel, hidden_dim)
+        # 使用softmax生成门控权重，对每个通道进行加权 [B, patch_num, n_vars-1]
+        channel_similarity = torch.matmul(en_embed, ex_glb_out)
+         # [B, patch_num, n_vars-1]
+        channel_gates = F.softmax(channel_similarity, dim=-1)
 
-        # 计算 Ki 和 Si
-        outputs = []
-        for i in range(n_channel):
-            # 拼接 hi 和 C[i]
-            hi = h_last[:, i, :]  # (batch, hidden_dim)
-            ci = C[:, i, :]  # (batch, hidden_dim)
-            input_mlp = torch.cat([hi, ci], dim=-1)  # (batch, 2*hidden_dim)
+        # TODO: 讨论是矩阵相乘还是逐元素相乘
+        # [B, n_vars-1, d_model]
+        # gated_ex_glb_out = ex_glb_out * channel_gates.unsqueeze(-1)
+        # [B, patch_num, d_model]
+        gated_ex_glb_out = torch.matmul(channel_gates, ex_glb_out.permute(0,2,1))
 
-            # MLP 预测 Ki
-            ki_raw = self.mlp_k(input_mlp)  # (batch, 1)
-            ki_norm = torch.sigmoid(ki_raw) * (self.n_channel - 1)
-            ki = torch.floor(ki_norm).long()  # (batch,)
+        # 计算内生变量与加权全局注意力的交叉注意力 en_embed: [B, patch_num + 1, d_model]
+        enc_out = self.encoder(en_embed, gated_ex_glb_out)
 
-            # 计算相关性得分 Si
-            si = torch.sigmoid(self.correlation_layer(input_mlp))  # (batch, n_channel)
+        # 预测头 dec_out: [B, n_vars, pred_len]
+        dec_out = self.head(enc_out)
+        dec_out = dec_out.unsqueeze(-1)
 
-            # 选择 Top-Ki 相关变量
-            _, topk_indices = torch.topk(si, ki.max().item(), dim=-1)  # (batch, ki)
+        if self.use_norm:
+            # De-Normalization from Non-stationary Transformer
+            dec_out = dec_out * (stdev[:, 0, -1:].unsqueeze(1).repeat(1, self.pred_len, 1))
+            dec_out = dec_out + (means[:, 0, -1:].unsqueeze(1).repeat(1, self.pred_len, 1))
 
-            # 3. 关系融合 (局部 Transformer)
-            related_h = h_last[:, topk_indices, :]  # (batch, ki, hidden_dim)
-            local_input = torch.cat([h_last[:, i:i+1, :], related_h], dim=1)  # (batch, ki+1, hidden_dim)
-            zi = self.local_transformer(local_input)[:, 0, :]  # (batch, hidden_dim)
-
-            # 预测 (输出 pred_len 步)
-            yi = self.predictor(zi)  # (batch, pred_len)
-            outputs.append(yi)
-
-        # 整合输出
-        output = torch.stack(outputs, dim=1)  # (batch, n_channel, pred_len)
-        # 假设只预测一个全局值，平均池化通道维度
-        output = output.mean(dim=1, keepdim=False).unsqueeze(-1)  # (batch, pred_len, 1)
-        return output
+        return dec_out
         

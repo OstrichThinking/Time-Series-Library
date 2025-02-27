@@ -21,7 +21,7 @@ import sys
         - 学习率: 0.0001
     
     👋 实验后台启动命令
-        nohup python -u scripts/long_term_forecast/VitalDB_script/AHCformer_invasive_st2_10.py > checkpoints/AHCformer_invasive_st2_10.log 2>&1 &
+        nohup python -u scripts/long_term_forecast/VitalDB_script/AHCformer_invasive_st2_10_nosurgicalF.py > checkpoints/AHCformer_invasive_st2_10_nosurgicalF.log 2>&1 &
     
     🌞实验结果:
         - 测试集 (V100): 
@@ -31,12 +31,12 @@ import sys
 os.chdir("/home/zhud/fist/ioh/Time-Series-Library/")
 
 # 设置只使用一张 GPU
-os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+os.environ['CUDA_VISIBLE_DEVICES'] = '0,1,2,3'
 
 # 定义模型名称和路径
 model_name = 'AHCformer'
 task_name = 'long_term_forecast'
-model_id = 'AHCformer_invasive_st2_10_surgicalF'
+model_id = 'AHCformer_invasive_st2_10_nosurgicalF'
 
 
 root_path = '/home/share/ioh/VitalDB_IOH/ioh_dataset_with_medication/'
@@ -106,16 +106,15 @@ args=f"python run.py \
   --dec_in 23 \
   --c_out 1 \
   --embed surgicalF \
-  --use_embed \
   --des Exp \
   --d_model 256 \
   --d_ff 512 \
   --itr 1 \
-  --batch_size 4 \
-  --train_epochs 1 \
-  --num_workers 32 \
+  --batch_size 64 \
+  --train_epochs 50 \
+  --num_workers 10 \
   --use_multi_gpu \
-  --devices 0 \
+  --devices 0,1,2,3 \
   --inverse"
 
 

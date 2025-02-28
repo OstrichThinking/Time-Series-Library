@@ -127,6 +127,21 @@ class FlattenHead(nn.Module):
         x = self.linear(x)
         x = self.dropout(x)
         return x
+    
+class ChannelAttention(nn.Module):
+    def __init__(self, d_model):
+        super().__init__()
+        self.fc1 = nn.Linear(d_model, d_model // 2, bias=False)
+        self.relu = nn.ReLU()
+        self.fc2 = nn.Linear(d_model // 2, d_model, bias=False)
+        self.sigmoid = nn.Sigmoid()
+
+    def forward(self, x):
+        x = self.fc1(x)
+        x = self.relu(x)
+        x = self.fc2(x)
+        x = self.sigmoid(x)
+        return x
 
 class Model(nn.Module):
 
@@ -148,6 +163,8 @@ class Model(nn.Module):
         # TODO: 讨论 使用 LSTM, CNN, Linear 的优劣
         self.ex_embedding = DataEmbedding_inverted_lstm(configs.seq_len, configs.d_model, configs.embed, configs.freq,
                                                     configs.dropout)
+        # channel attention
+        self.channel_att = ChannelAttention(configs.d_model)
         
         # TODO: 讨论单层 Attention 和 Multi-Attention 之间的优劣
         self.ex_glb_encoder = Encoder(
@@ -213,17 +230,19 @@ class Model(nn.Module):
 
         # 计算外生变量的全局上下文 ex_glb_out: [B, n_vars-1, d_model]
         ex_glb_out = self.ex_glb_encoder(ex_embed, ex_embed)
-        ex_glb_out = ex_glb_out.permute(0,2,1)
+        # 计算通道注意力 [B, n_vars-1, d_model]
+        channel_gates = self.channel_att(ex_glb_out)
 
-        # 使用softmax生成门控权重，对每个通道进行加权 [B, patch_num, n_vars-1]
-        channel_similarity = torch.matmul(en_embed, ex_glb_out)
-         # [B, patch_num, n_vars-1]
-        channel_gates = F.softmax(channel_similarity, dim=-1)
+        # 矩阵相乘作为门控权重
+        # # 使用softmax生成门控权重，对每个通道进行加权 [B, patch_num, n_vars-1]
+        # channel_similarity = torch.matmul(en_embed, ex_glb_out)
+        #  # [B, patch_num, n_vars-1]
+        # channel_gates = F.softmax(channel_similarity, dim=-1)
 
         # [B, n_vars-1, d_model]
-        # gated_ex_glb_out = ex_glb_out * channel_gates.unsqueeze(-1)
+        gated_ex_glb_out = ex_glb_out * channel_gates
         # [B, patch_num, d_model]
-        gated_ex_glb_out = torch.matmul(channel_gates, ex_glb_out.permute(0,2,1))
+        # gated_ex_glb_out = torch.matmul(channel_gates, ex_glb_out.permute(0,2,1))
 
         # 计算内生变量与加权全局注意力的交叉注意力 en_embed: [B, patch_num + 1, d_model]
         enc_out = self.encoder(en_embed, gated_ex_glb_out)

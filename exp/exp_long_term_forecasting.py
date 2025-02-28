@@ -310,7 +310,7 @@ class Exp_Long_Term_Forecast(Exp_Basic):
             dtw = 'Not calculated'
 
         mae, mse, rmse, mape, mspe = metric(preds, trues)
-        print("模型性能比较:")
+        print("波形预测性能比较:")
         print("+" + "-"*20 + "+" + "-"*20 + "+" + "-"*20 + "+")
         print("|{:^20}|{:^20}|{:^20}|".format("MSE", "MAE", "DTW"))
         print("+" + "-"*20 + "+" + "-"*20 + "+" + "-"*20 + "+")
@@ -318,12 +318,11 @@ class Exp_Long_Term_Forecast(Exp_Basic):
         print("+" + "-"*20 + "+" + "-"*20 + "+" + "-"*20 + "+")
 
         auc, accuracy, recall, precision, specificity, F1, TP, FP, FN, TN = ioh_classification_metric(preds, trues, stime=self.args.stime)
-        print("模型分类性能比较:")
+        print("分类性能比较:")
         print("+" + "-"*20 + "+" + "-"*20 + "+" + "-"*20 + "+")
         print("|{:^20}|{:^20}|{:^20}|".format("AUC", "Accuracy", "Recall"))
         print("+" + "-"*20 + "+" + "-"*20 + "+" + "-"*20 + "+")
         print("|{:^20}|{:^20}|{:^20}|".format(auc, accuracy, recall))
-        print("+" + "-"*20 + "+" + "-"*20 + "+" + "-"*20 + "+")
         print("+" + "-"*20 + "+" + "-"*20 + "+" + "-"*20 + "+")
         print("|{:^20}|{:^20}|{:^20}|".format("Precision", "Specificity", "F1"))
         print("+" + "-"*20 + "+" + "-"*20 + "+" + "-"*20 + "+")

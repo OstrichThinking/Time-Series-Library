@@ -4,8 +4,9 @@ import sys
 
 """
     🌟实验简述：
-        - 使用 iTransformer 模型，对 VitalDB 数据集进行长期预测。
+        - 使用 AHCformer 模型，对 VitalDB 数据集进行长期预测。
         - 450个点预测150个点
+        - 重新组织了代码结构，增加内生变量 patch_embedding 后的自注意力，使用通道门控机制为外生变量进行加权
     
     🏠数据集：
         - vitaldb_ioh_dataset_with_medication_invasive_group.csv
@@ -13,27 +14,59 @@ import sys
         - 每隔2s取一个点，15min预测5min，滑动窗口步长20s
     
     🚀模型：
-        - iTransformer
+        - AHCformer
     
     🔍训练参数：
-        - 训练轮数: 1
-        - 批次大小: 4
+        - 训练轮数: 50
+        - 批次大小: 64
         - 学习率: 0.0001
     
     👋 实验后台启动命令
-        nohup python -u scripts/long_term_forecast/VitalDB_script/iTransformer_debug.py > checkpoints/iTransformer_debug.log 2>&1 &
+        nohup python -u scripts/long_term_forecast/VitalDB_script/AHCformer_invasive_st2_10_nosurgicalF_channelGate.py > checkpoints/AHCformer_invasive_st2_10_nosurgicalF_channelGate.log 2>&1 &
     
     🌞实验结果:
+        - 测试集 (V100): 
+        模型性能比较:
+
+        +--------------------+--------------------+--------------------+
+        |        MSE         |        MAE         |        DTW         |
+        +--------------------+--------------------+--------------------+
+        | 46.33245086669922  |  4.1128249168396   |   Not calculated   |
+        +--------------------+--------------------+--------------------+
+        分类性能比较:
+        +--------------------+--------------------+--------------------+
+        |        AUC         |      Accuracy      |       Recall       |
+        +--------------------+--------------------+--------------------+
+        | 0.9156073446327684 | 0.3767800058122639 | 0.5338686431953881 |
+        +--------------------+--------------------+--------------------+
+        |     Precision      |    Specificity     |         F1         |
+        +--------------------+--------------------+--------------------+
+        | 0.8946805293885051 | 0.9933815180969787 | 0.6850807619546213 |
+        +--------------------+--------------------+--------------------+
+        混淆矩阵:·
+        +--------------------+--------------------+--------------------+
+        |         TP         |         FN         |         --         |
+        +--------------------+--------------------+--------------------+
+        |        2593        |        4289        |         --         |
+        +--------------------+--------------------+--------------------+
+        |         FP         |         TN         |         --         |
+        +--------------------+--------------------+--------------------+
+        |        239         |       35872        |         --         |
+        +--------------------+--------------------+--------------------+
         
+     
 """
 
 os.chdir("/home/zhud/fist/ioh/Time-Series-Library/")
+
+# 设置只使用一张 GPU
 os.environ['CUDA_VISIBLE_DEVICES'] = '0,1,2,3'
 
 # 定义模型名称和路径
-model_name = 'iTransformer'
+model_name = 'AHCformer'
 task_name = 'long_term_forecast'
-model_id = 'iTransformer_debug'
+model_id = 'AHCformer_invasive_st2_10_nosurgicalF_channelGate'
+
 
 root_path = '/home/share/ioh/VitalDB_IOH/ioh_dataset_with_medication/'
 data_path = 'vitaldb_ioh_dataset_with_medication_invasive_group.csv'
@@ -42,6 +75,7 @@ seq_len = 450   # 预测窗口数据点数
 label_len = 225 # 预测窗口加入label数据的点数
 pred_len = 150  # 预测窗口数据点数
 stime = 20      # 采样间隔
+
 
 static_features = ['caseid', 'sex', 'age', 'bmi']  
 dynamic_features = [
@@ -91,27 +125,26 @@ args=f"python run.py \
   --features MS \
   --static_features {static_features_str} \
   --dynamic_features {dynamic_features_str} \
-  --freq s \
   --seq_len {seq_len} \
   --label_len {label_len} \
   --pred_len {pred_len} \
+  --stime {stime} \
   --e_layers 3 \
-  --d_layers 1 \
   --factor 3 \
   --enc_in 23 \
   --dec_in 23 \
   --c_out 1 \
   --embed surgicalF \
   --des Exp \
-  --d_model 128\
-  --d_ff 128\
+  --d_model 256 \
+  --d_ff 512 \
   --itr 1 \
-  --train_epochs 1 \
+  --batch_size 64 \
+  --train_epochs 50 \
   --num_workers 10 \
-  --batch_size 4 \
   --use_multi_gpu \
-  --devices 0 \
-  --inverse"           # 测试时是否恢复
+  --devices 0,1,2,3 \
+  --inverse"
 
 
 args = args.split()

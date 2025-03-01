@@ -153,36 +153,31 @@ class DataEmbedding_inverted(nn.Module):
         if x_mark is None:
             x = self.value_embedding(x)
         else:
-            # x = self.value_embedding(torch.cat([x, x_mark.permute(0, 2, 1)], 1)) # [Batch, n_vars-1, seq_len] [Batch, n_vars, seq_len]
-            x = torch.cat([self.value_embedding(x), self.temporal_embedding(x_mark)], 1)
+            x = self.value_embedding(torch.cat([x, x_mark.permute(0, 2, 1)], 1)) # [Batch, n_vars-1, seq_len] [Batch, n_vars, seq_len]
         # x: [Batch, Variate, d_model]
         return self.dropout(x)
     
-class DataEmbedding_inverted_lstm(nn.Module):
+class DataEmbedding_inverted_GRU(nn.Module):
     def __init__(self, c_in, d_model, embed_type='fixed', freq='h', dropout=0.1):
-        super(DataEmbedding_inverted_lstm, self).__init__()
-        # self.value_embedding = nn.Linear(c_in, d_model)     
-        self.value_embedding = nn.LSTM(c_in, d_model, batch_first=True)
-
+        super(DataEmbedding_inverted_GRU, self).__init__()
+        
+        self.value_embedding = nn.GRU(c_in, d_model, batch_first=True)
         self.temporal_embedding = TemporalEmbedding(d_model=d_model, embed_type=embed_type,
                                                     freq=freq) if embed_type != 'timeF' else TimeFeatureEmbedding(
             d_model=d_model, embed_type=embed_type, freq=freq)
         self.dropout = nn.Dropout(p=dropout)
 
     def forward(self, x, x_mark):
-        # x [Batch, seq_len, n_vars-1]  -->  x: [Batch, n_vars-1, seq_len], x_mark: [Batch, seq_len, 1]
+        # TODO 维度待确定
+        # x [Batch, seq_len, n_vars-1]
         x = x.permute(0, 2, 1)
         
         if x_mark is None:
             x, _ = self.value_embedding(x)
         else:
             x_mark = x_mark.permute(0, 2, 1)
-            # x = self.value_embedding(torch.cat([x, x_mark.permute(0, 2, 1)], 1)) # [Batch, n_vars-1, seq_len] [Batch, n_vars, seq_len]
-            x, _ = self.value_embedding(x) # lstm_out: [Batch, n_vars-1, d_model]
+            x, _ = self.value_embedding(x)
             
-            # x_mark_out: [Batch, seq_len, d_model]
-            # x_mark_out = self.temporal_embedding(x_mark)
-            # x = torch.cat([lstm_out, x_mark_out], 1)
         return self.dropout(x)
 
 

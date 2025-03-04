@@ -39,7 +39,7 @@ def metric(pred, true):
     mape = MAPE(pred, true)
     mspe = MSPE(pred, true)
 
-    return mae, mse, rmse, mape, mspe
+    return round(mae, 5), round(mse, 5), round(rmse, 5), round(mape, 5), round(mspe, 5)
 
 def ioh_classification_metric(pred, true, IOH_value=65, stime=20):
     
@@ -79,7 +79,7 @@ def ioh_classification_metric(pred, true, IOH_value=65, stime=20):
     else:
         auc = float('nan')  # 或者选择一个合适的默认值  #TODO
     
-    return precision, recall, F1, accuracy, specificity, auc, TP, FP, FN, TN
+    return round(precision, 5), round(recall, 5), round(F1, 5), round(accuracy, 5), round(specificity, 5), round(auc, 5), TP, FP, FN, TN
     
 
 def Check_If_IOH(time_series, IOH_value, duration):

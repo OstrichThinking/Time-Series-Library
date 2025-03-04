@@ -1,5 +1,6 @@
 import numpy as np
 from sklearn.metrics import roc_auc_score
+import torch
 
 def RSE(pred, true):
     return np.sqrt(np.sum((true - pred) ** 2)) / np.sqrt(np.sum((true - true.mean()) ** 2))
@@ -87,28 +88,49 @@ def Check_If_IOH(time_series, IOH_value, duration):
     Check if there is a period of intraoperative hypotension (IOH) in the time series.
 
     Parameters:
-    - time_series (1D array-like): The blood pressure time series.
-    - srate: Sampling rate of the time series (samples per second).
-    - IOH_value: Threshold value for IOH (blood pressure below this is considered hypotensive).
-    - duration: duration in seconds that defines IOH (must stay below IOH_value for this period).
+    - time_series (1D array-like or torch.Tensor): The blood pressure time series (NumPy array or PyTorch tensor).
+    - IOH_value (float): Threshold value for IOH (blood pressure below this is considered hypotensive).
+    - duration (float): Duration in seconds or samples that defines IOH.
 
     Returns:
     - bool: True if IOH is detected, otherwise False.
     """
-    # 将Duration转换为采样点数
-    duration_samples = int(duration)  # 将duration转换为整数
-    
-    # 如果时间序列长度小于duration_samples，不可能满足IOH条件，直接返回False
+    # 将 duration 转换为采样点数（假设 duration 已为采样点数，若需采样率，需额外参数）
+    duration_samples = int(duration)
+
+    # 判断输入类型并转换为适当格式
+    if isinstance(time_series, np.ndarray):
+        # CPU 上使用 NumPy
+        time_series = time_series  # 已经是 NumPy 数组
+        is_torch = False
+    elif isinstance(time_series, torch.Tensor):
+        # GPU 或 CPU 上使用 PyTorch
+        time_series = time_series  # 已经是 PyTorch 张量
+        is_torch = True
+    else:
+        raise TypeError("time_series must be a NumPy array or PyTorch tensor")
+
+    # 如果时间序列长度小于 duration_samples，不可能满足 IOH 条件
     if len(time_series) < duration_samples:
         return False
+
+    # 创建低于阈值的布尔掩码
+    if is_torch:
+        below_threshold = time_series < IOH_value  # PyTorch 张量比较
+        # 使用卷积检查连续 duration_samples 个 True
+        kernel = torch.ones(duration_samples, device=time_series.device)
+        conv_result = torch.conv1d(below_threshold.float().squeeze(-1).unsqueeze(0).unsqueeze(0), 
+                                  kernel.unsqueeze(0).unsqueeze(0), 
+                                  padding=0)
+        # 如果卷积结果等于 duration_samples，说明有连续 duration_samples 个 True
+        return torch.any(conv_result == duration_samples).item()
+    else:
+        below_threshold = time_series < IOH_value  # NumPy 数组比较
+        # 使用滑动窗口检查
+        for i in range(len(below_threshold) - duration_samples + 1):
+            if np.all(below_threshold[i:i + duration_samples]):
+                return True
+        return False
     
-    # 创建一个布尔掩码数组，标记低于IOH阈值的点
-    below_threshold = time_series < IOH_value
-    
-    # 使用滑动窗口检查是否存在连续的duration_samples个值都低于IOH_value
-    for i in range(len(below_threshold) - duration_samples + 1):
-        # 检查当前滑动窗口内的所有值是否都为True（即都低于IOH_value）
-        if np.all(below_threshold[i:i + duration_samples]):
-            return True
-    
-    return False
+def Check_If_IOH_permin(time_series, IOH_value):
+    return time_series < IOH_value

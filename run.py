@@ -57,7 +57,9 @@ if __name__ == '__main__':
                                                                    'Solar8000/BT_window_sample',
                                                                    'Solar8000/HR_window_sample'],
                         help='List of dynamic waveform features to include.')
-
+    parser.add_argument('--predict_permin', action='store_true', help='predict per min', default=False)
+    parser.add_argument('--predict_inmin', action='store_true', help='predict in min', default=False)
+    
     # forecasting task
     parser.add_argument('--seq_len', type=int, default=96, help='input sequence length')
     parser.add_argument('--label_len', type=int, default=48, help='start token length')
@@ -119,7 +121,9 @@ if __name__ == '__main__':
     parser.add_argument('--loss', type=str, default='MSE', help='loss function')
     parser.add_argument('--lradj', type=str, default='type1', help='adjust learning rate')
     parser.add_argument('--use_amp', action='store_true', help='use automatic mixed precision training', default=False)
-
+    parser.add_argument('--use_classification_head', action='store_true', help='use classification head', default=False)
+    parser.add_argument('--agg_method', type=str, default='attention', help='aggregation method')
+    parser.add_argument('--alpha', type=float, default=0.5, help='alpha for loss function')
     # GPU
     parser.add_argument('--use_gpu', type=bool, default=True, help='use gpu')
     parser.add_argument('--gpu', type=int, default=0, help='gpu')

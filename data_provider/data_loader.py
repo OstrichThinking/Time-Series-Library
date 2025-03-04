@@ -359,6 +359,21 @@ class VitalDBLoader(Dataset):
         df_raw = pd.read_csv(
             os.path.join(self.root_path, str(self.data_path)), 
             usecols=columns_to_read)    # 调试时添加，nrows=3000
+        
+        # 如果要预测第x分钟发生低血压的概率,需要去除预测窗口中有nan的样本
+        if self.args.use_classification_head and self.args.predict_permin:
+            print("Removing samples with nan in prediction_maap...")
+            before_mvoe_nan_count = len(df_raw)
+            for index, str_prediction_maap in enumerate(df_raw['prediction_maap'].tolist()):
+                sequence_str = str_prediction_maap[1:-1]
+                sequence_array = sequence_str.split(', ')
+                sequence_list = [float(x) if x != 'nan' else np.nan for x in sequence_array] 
+                sequence_list = sequence_list[:self.args.pred_len]
+                if any(np.isnan(sequence_list)):
+                    df_raw = df_raw.drop(index)
+            print(f"Removed {before_mvoe_nan_count - len(df_raw)} samples with nan in prediction_maap.")
+            # 重新编排索引
+            df_raw.reset_index(drop=True, inplace=True)
 
         # 按照caseid进行拆分，确保同一caseid的样本不会出现在不同的数据集中
         unique_caseids = df_raw['caseid'].unique()
@@ -494,6 +509,12 @@ class VitalDBLoader(Dataset):
 
     def __len__(self):
         return len(self.data[self.dynamic_features[0]])
+    
+    def inverse_transform_on_gpu(self, scaler, data):
+        # 在GPU上进行数据的反转
+        mean = torch.tensor(scaler.mean_).to(data.device)
+        scale = torch.tensor(scaler.scale_).to(data.device)
+        return data * scale + mean
 
     def inverse_transform(self, data, flag='y'):
         if flag == 'y':

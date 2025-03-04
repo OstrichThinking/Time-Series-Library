@@ -22,10 +22,11 @@ import sys
         - 学习率: 0.0001
     
     👋 实验后台启动命令
-        nohup python -u scripts/long_term_forecast/VitalDB_script/Transformer_noninvasive_st30_5_surgicalF.py > checkpoints/output_Transformer_noninvasive_st30_5_surgicalF.log 2>&1 &
+        nohup python -u scripts/long_term_forecast/VitalDB_script/Transformer_noninvasive_st30_5_surgicalF_MSE_BCE_alpha_permin_oversampleM.py > checkpoints/output_Transformer_noninvasive_st30_5_surgicalF_MSE_BCE_alpha_permin_oversampleM.log 2>&1 &
     
     🌞实验结果:
-
+        - 测试集 (V100): mse:63.4347038269043, mae:5.252523422241211
+        - 测试集 (A100): mse:63.14641571044922, mae:5.240297317504883
 """
 
 # A100项目路径
@@ -39,7 +40,7 @@ os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 # TODO 定义模型名称和数据集路径
 model_name = 'Transformer'
 task_name = 'long_term_forecast'
-model_id = f'vitaldb_noninvasive_st30_5_surgicalF'  
+model_id = f'vitaldb_noninvasive_st30_5_surgicalF_MSE_BCE_alpha_permin_oversampleM'  
 
 # A100数据集路径
 root_path = '/home/data/ioh/cma_ioh/'
@@ -53,13 +54,16 @@ static_features = ['caseid', 'sex', 'age', 'bmi']
 dynamic_features = ['window_sample_time',                   # 观察窗口采样时间范围
                     'Solar8000/NIBP_DBP_window_sample',     # 无创舒张压                  
                     'Solar8000/BT_window_sample',           # 体温
-                    'Solar8000/HR_window_sample',           # 心率          
-                    'Solar8000/NIBP_MBP_window_sample',     # 无创平均动脉压
+                    'Solar8000/HR_window_sample',           # 心率
+                    'Solar8000/NIBP_MBP_window_sample',     # 无创平均动脉压          
                     'prediction_window_time',               # 预测窗口时间范围
                     'prediction_maap']                      # 需要预测的有创/无创平均动脉压
 
 static_features_str = ' '.join(static_features)
 dynamic_features_str = ' '.join(dynamic_features)
+
+# TODO 定义数据增强方法
+augment_method = 'oversample_minority'
 
 # TODO 定义swanlab
 swan_project='tsl'
@@ -76,6 +80,7 @@ args=f"python run.py \
   --swan_workspace {swan_workspace} \
   --data VitalDB \
   --features MS \
+  --augment_method {augment_method} \
   --static_features {static_features_str} \
   --dynamic_features {dynamic_features_str} \
   --freq s \
@@ -95,6 +100,10 @@ args=f"python run.py \
   --train_epochs 50 \
   --batch_size 64 \
   --num_workers 32 \
+  --use_classification_head \
+  --predict_permin \
+  --loss MSE_BCE \
+  --alpha 0.5 \
   --use_multi_gpu \
   --devices 0 \
   --inverse"

@@ -52,10 +52,10 @@ stime = 30     # 采样间隔
 static_features = ['caseid', 'sex', 'age', 'bmi']  
 dynamic_features = ['window_sample_time',                   # 观察窗口采样时间范围
                     'Solar8000/ART_DBP_window_sample',      # 有创舒张压
-                    'Solar8000/ART_MBP_window_sample',       # 有创平均动脉压
                     'Solar8000/BT_window_sample',           # 体温
                     'Solar8000/HR_window_sample',           # 心率
                     'prediction_window_time',               # 预测窗口时间范围
+                    'Solar8000/ART_MBP_window_sample',       # 有创平均动脉压
                     'prediction_maap']                      # 需要预测的有创/无创平均动脉压
 
 static_features_str = ' '.join(static_features)
@@ -87,7 +87,6 @@ args=f"python run.py \
   --dec_in 7 \
   --c_out 1 \
   --embed surgicalF \
-  --use_embed \
   --des Exp \
   --d_model 256 \
   --d_ff 512 \

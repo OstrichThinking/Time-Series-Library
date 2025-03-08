@@ -194,7 +194,11 @@ class Model(nn.Module):
         en_embed, n_vars = self.en_embedding(x_enc[:, :, -1].unsqueeze(-1).permute(0, 2, 1))
 
         # 外生变量 使用 variable-length embedding [B, n_vars-1, d_model]
-        ex_embed = self.ex_embedding(x_enc[:, :, :-1], x_mark_enc)
+        # 单变量时序预测时候，内生变量和外生变量为同一个
+        if self.n_vars > 1:
+            ex_embed = self.ex_embedding(x_enc[:, :, :-1], x_mark_enc)
+        else:
+            ex_embed = self.ex_embedding(x_enc[:, :, -1].unsqueeze(-1), x_mark_enc)
 
         enc_out = self.encoder(en_embed, ex_embed)
 

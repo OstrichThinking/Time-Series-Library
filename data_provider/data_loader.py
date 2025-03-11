@@ -14,6 +14,9 @@ from sktime.datasets import load_from_tsfile_to_dataframe
 import warnings
 from utils.augmentation import run_augmentation_single
 from collections import defaultdict
+import json
+from utils.tools import create_segment_list
+from tqdm import tqdm
 
 warnings.filterwarnings('ignore')
 
@@ -311,6 +314,201 @@ class Dataset_Custom(Dataset):
 
     def inverse_transform(self, data):
         return self.scaler.inverse_transform(data)
+
+
+class VitalDBLoader_JSONL(Dataset):
+    def __init__(self, args, root_path, flag='train', size=None,
+                 features='S', data_path='ETTh1.csv',
+                 target='OT', scale=True, fitted_scaler=None, timeenc=0, freq='h',
+                 seasonal_patterns=None):
+        # size [seq_len, label_len, pred_len]
+        self.args = args
+
+        self.seq_len = size[0]
+        self.label_len = size[1]
+        self.pred_len = size[2]
+        self.stime = args.stime
+        
+        # 训练:验证:测试 比例为 7:1:2 
+        assert flag in ['train', 'val', 'test',]
+        type_map = {'train': 0, 'val': 1, 'test': 2}
+        self.set_type = type_map[flag]
+
+        self.features = features
+        self.static_features = args.static_features
+        self.dynamic_features = args.dynamic_features
+        
+        self.target = target
+        self.scale = scale
+        self.timeenc = timeenc
+        self.freq = freq
+
+        self.root_path = root_path
+        self.data_path = data_path
+
+        # Initialize scalers for each feature to be standardized
+        self.scalers = {feature: StandardScaler() for feature in self.static_features if feature != 'caseid' and feature != 'sex' and feature != 'time'}
+        self.scalers.update({feature: StandardScaler() for feature in self.dynamic_features})
+        
+        self.fitted_scaler = fitted_scaler
+
+        self.__read_data__()
+    
+    def __read_data__(self):
+
+        # 从文件读取 JSONL 数据
+        case_list = []
+        try:
+            with open(os.path.join(self.root_path, str(self.data_path)), 'r', encoding='utf-8') as file:
+                for line in file:
+                    # 逐行读取并解析 JSON
+                    try:
+                        case = json.loads(line.strip())
+                        case_list.append(case)
+                    except json.JSONDecodeError as e:
+                        print(f"Error decoding JSON line: {e}")
+                        continue  # 跳过有错误的行
+        except FileNotFoundError:
+            print(f"File not found: {os.path.join(self.root_path, str(self.data_path))}")
+            return
+        except Exception as e:
+            print(f"Error reading JSONL file: {e}")
+            return
+
+        # 计算数据集分割点
+        n_caseids = len(case_list)
+        train_cut = int(n_caseids * 0.7)
+        val_cut = train_cut + int(n_caseids * 0.1)
+
+        # 根据 set_type 分割数据集
+        if self.set_type == 0:  # training set
+            case_subset = case_list[:train_cut]
+        elif self.set_type == 1:  # validation set
+            case_subset = case_list[train_cut:val_cut]
+        else:  # test set
+            case_subset = case_list[val_cut:]
+
+        # 处理 JSON 数据为结构化格式
+        df_raw = self.__process_json_data(case_subset)
+
+    def __process_json_data(self, case_subset):
+        
+        sample_list = defaultdict(list)
+        # for case in tqdm(case_subset[:1]):
+        for case in tqdm(case_subset[:]):
+            
+            # 处理时序变量
+            case_sample_num = 0
+            for feature in self.dynamic_features:
+                # 对每个时序变量进行滑动窗口处理
+                feature_list = create_segment_list(case[feature], self.seq_len, self.pred_len)
+                case_sample_num = len(feature_list)
+                sample_list[feature].extend([item[:self.seq_len] for item in feature_list])
+                # 如果为目标变量，将其加入到预测目标列表
+                if feature == 'Solar8000/ART_MBP':
+                    sample_list['prediction_maap'].extend([item[-self.pred_len:] for item in feature_list])
+            
+            # 梳理静态变量
+            case_timestamp_list = []
+            for feature in self.static_features:
+                if feature != 'caseid' and feature != 'time':
+                    # 修复：使用列表推导式创建重复值，而不是使用np.full创建数组
+                    sample_list[feature].extend([case[feature]] * case_sample_num)
+                if feature == 'time':
+                    times = case[feature].split('-')
+                    start = int(times[0])
+                    end = int(times[1]) 
+                    case_timestamp_list = np.arange(start, end + self.stime, self.stime)
+
+            # 添加 time stamp
+            timestamp_list = create_segment_list(case_timestamp_list, self.seq_len, self.pred_len)  
+            sample_list['seq_time_stamp_list'].extend([item[:self.seq_len] for item in timestamp_list])
+            sample_list['pred_time_stamp_list'].extend([item[-self.pred_len:] for item in timestamp_list])
+        
+        if self.scale and self.set_type == 0:
+            print("Fitting scalers on training data...")
+            for feature in self.static_features:
+                if feature != 'caseid' and feature != 'sex' and feature != 'time':
+                    self.scalers[feature].fit(np.array(sample_list[feature]).reshape(-1, 1))
+            # 初始使用训练集拟合标准化 scaler
+            for feature in self.dynamic_features:
+                if feature in self.scalers:
+                    self.scalers[feature].fit(sample_list[feature])
+        else:
+            # 测试和验证时，使用拟合好的 scaler
+            self.scalers = self.fitted_scaler
+
+        if self.scale:
+            print("Transforming data with fitted scalers...")
+            for feature in self.static_features:
+                if feature != 'caseid' and feature != 'sex' and feature != 'time':
+                    sample_list[feature] = self.scalers[feature].transform(np.array(sample_list[feature]).reshape(-1, 1))
+            for feature in self.dynamic_features:
+                if feature in self.scalers:
+                    sample_list[feature] = self.scalers[feature].transform(sample_list[feature])
+        
+        self.data = sample_list
+
+    def __getitem__(self, index):
+        if self.features == 'S': # 单变量时序预测
+            if 'Solar8000/ART_MBP' in self.scalers:
+                mbp = self.data['Solar8000/ART_MBP'][index]
+            if 'Solar8000/NIBP_MBP' in self.scalers:
+                mbp = self.data['Solar8000/NIBP_MBP'][index]
+            seq_x = np.stack([mbp], axis=1)
+
+        else: # 'MS' 'M' 多变量时序预测
+            seq_x = []
+            for feature in self.static_features:
+                if feature != 'caseid' and feature != 'time':
+                    seq_x.append(np.full(self.seq_len, self.data[feature][index]))
+            
+            for feature in self.dynamic_features:
+                if feature == 'prediction_maap':
+                    continue
+                seq_x.append(self.data[feature][index])
+
+            seq_x = np.stack(seq_x, axis=1)
+
+        # 预测的目标数据是 prediction_maap 和当前 mbp 的label_len部分，构建 seq_y
+        if 'Solar8000/ART_MBP' in self.dynamic_features:
+            mbp_label = self.data['Solar8000/ART_MBP'][index][-self.label_len:]
+        if 'Solar8000/NIBP_MBP' in self.dynamic_features:
+            mbp_label = self.data['Solar8000/NIBP_MBP'][index][-self.label_len:]
+        # TODO 有创和无创同时存在时需要再处理, maby同时预测有创和无创的maap
+        
+        prediction_maap = self.data['prediction_maap'][index]
+        seq_y = np.concatenate([mbp_label[:, np.newaxis], prediction_maap[:, np.newaxis]], axis=0)
+
+        seq_x_mark = self.data['seq_time_stamp_list'][index].reshape(-1, 1)
+        
+        time_label = self.data['seq_time_stamp_list'][index][-self.label_len:]
+        time_pred = self.data['pred_time_stamp_list'][index]
+        seq_y_mark = np.concatenate([time_label[:, np.newaxis], time_pred[:, np.newaxis]], axis=0)
+        
+        return seq_x, seq_y, seq_x_mark, seq_y_mark
+    
+    def __len__(self):
+        return len(self.data[self.dynamic_features[0]])
+        # return len(self.data)
+
+    def inverse_transform(self, data, flag='y'):
+        if flag == 'y':
+            return self.scalers['Solar8000/ART_MBP'].inverse_transform(data)
+        else:
+            # 检查两个可能的键，返回一个包含两个结果的字典
+            results = {}
+            if 'Solar8000/ART_MBP' in self.scalers:
+                results['ART_MBP'] = self.scalers['Solar8000/ART_MBP'].inverse_transform(data)
+            if 'Solar8000/NIBP_MBP' in self.scalers:
+                results['NIBP_MBP'] = self.scalers['Solar8000/NIBP_MBP'].inverse_transform(data)
+            
+            if results:
+                return results
+            else:
+                raise ValueError("Neither 'Solar8000/ART_MBP' nor 'Solar8000/NIBP_MBP' found in scalers.")
+    def _get_train_scaler(self):
+        return self.scalers
 
 class VitalDBLoader(Dataset):
     def __init__(self, args, root_path, flag='train', size=None,

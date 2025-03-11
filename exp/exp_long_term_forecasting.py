@@ -314,7 +314,7 @@ class Exp_Long_Term_Forecast(Exp_Basic):
         print("+" + "-"*20 + "+" + "-"*20 + "+" + "-"*20 + "+")
         print("|{:^20}|{:^20}|{:^20}|".format("MSE", "MAE", "DTW"))
         print("+" + "-"*20 + "+" + "-"*20 + "+" + "-"*20 + "+")
-        print("|{:^20}|{:^20}|{:^20}|".format(np.round(mse, decimals=5), np.round(mae, 5), dtw))
+        print("|{:^20}|{:^20}|{:^20}|".format(np.around(mse, decimals=5), np.around(mae, 5), dtw))
         print("+" + "-"*20 + "+" + "-"*20 + "+" + "-"*20 + "+")
 
         auc, accuracy, recall, precision, specificity, F1, TP, FP, FN, TN = ioh_classification_metric(preds, trues, stime=self.args.stime)

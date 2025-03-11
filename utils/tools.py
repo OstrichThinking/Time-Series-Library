@@ -118,3 +118,37 @@ def adjustment(gt, pred):
 
 def cal_accuracy(y_pred, y_true):
     return np.mean(y_pred == y_true)
+
+
+def create_segment_list(ts_list, obs_win_len, pred_win_len):
+    """
+    Split a time series into segments of specified length.
+    
+    Args:
+        ts_list: The time series data (list or array)
+        total_win_len: The length of each segment
+        
+    Returns:
+        List of segments, each of length total_win_len
+    """
+
+    total_win_len = obs_win_len + pred_win_len
+
+    # Convert to numpy array for efficient slicing
+    ts_array = np.array(ts_list)
+    
+    # Calculate number of complete segments
+    total_length = len(ts_array)
+    num_segments = total_length // total_win_len
+    
+    segments = []
+    
+    # Create segments
+    for i in range(num_segments):
+        start_idx = i * total_win_len
+        end_idx = start_idx + total_win_len
+        segment = ts_array[start_idx:end_idx]
+        segments.append(segment)
+
+    return segments
+    

@@ -105,6 +105,8 @@ if __name__ == '__main__':
                         help='the length of segmen-wise iteration of SegRNN')
     parser.add_argument('--stime', type=int, default=20,
                         help='the time interval of sampling')
+    parser.add_argument('--s_win', type=int, default=20,
+                        help='the time interval of sliding window')
 
     # optimization
     parser.add_argument('--num_workers', type=int, default=10, help='data loader num workers')

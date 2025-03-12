@@ -68,6 +68,7 @@ seq_len = 450   # 预测窗口数据点数
 label_len = 225 # 预测窗口加入label数据的点数
 pred_len = 150  # 预测窗口数据点数
 stime = 2       # 采样间隔
+s_win = 10      # 滑动窗口步长
 
 
 static_features = ['caseid', 'sex', 'age', 'bmi', 'time']
@@ -103,6 +104,7 @@ args=f"python run.py \
   --label_len {label_len} \
   --pred_len {pred_len} \
   --stime {stime} \
+  --s_win {s_win} \
   --e_layers 3 \
   --factor 3 \
   --enc_in 7 \

@@ -328,6 +328,7 @@ class VitalDBLoader_JSONL(Dataset):
         self.label_len = size[1]
         self.pred_len = size[2]
         self.stime = args.stime
+        self.s_win = args.s_win
         
         # 训练:验证:测试 比例为 7:1:2 
         assert flag in ['train', 'val', 'test',]
@@ -402,7 +403,7 @@ class VitalDBLoader_JSONL(Dataset):
             for feature in self.dynamic_features:
                 if feature != 'prediction_maap' and feature != 'seq_time_stamp_list' and feature != 'pred_time_stamp_list':
                     # 对每个时序变量进行滑动窗口处理
-                    case_sample_list = create_segment_list(case[feature], self.seq_len, self.pred_len)
+                    case_sample_list = create_segment_list(case[feature], self.seq_len, self.pred_len, step_len=self.s_win)
                     sample_list[feature].extend([item[:self.seq_len] for item in case_sample_list])
                     # 如果为目标变量，将其加入到预测目标列表
                     if feature == 'Solar8000/ART_MBP':
@@ -423,7 +424,7 @@ class VitalDBLoader_JSONL(Dataset):
                     case_timestamp_list = np.arange(start, end + self.stime, self.stime)
 
             # 添加 time stamp
-            timestamp_list = create_segment_list(case_timestamp_list, self.seq_len, self.pred_len)  
+            timestamp_list = create_segment_list(case_timestamp_list, self.seq_len, self.pred_len, step_len=self.s_win)  
             sample_list['seq_time_stamp_list'].extend([item[:self.seq_len] for item in timestamp_list])
             sample_list['pred_time_stamp_list'].extend([item[-self.pred_len:] for item in timestamp_list])
         

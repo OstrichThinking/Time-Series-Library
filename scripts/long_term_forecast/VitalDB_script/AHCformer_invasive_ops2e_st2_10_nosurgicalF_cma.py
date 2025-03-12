@@ -113,8 +113,8 @@ args=f"python run.py \
   --d_model 256 \
   --d_ff 512 \
   --itr 1 \
-  --batch_size 4 \
-  --train_epochs 1 \
+  --batch_size 64 \
+  --train_epochs 50 \
   --num_workers 10 \
   --use_multi_gpu \
   --devices 0,1,2,3 \

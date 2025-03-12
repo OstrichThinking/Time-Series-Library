@@ -25,9 +25,7 @@ import sys
     
     🌞实验结果:
         - 测试集 (V100): 
-        mse:46.32651138305664, mae:4.121903419494629, dtw:Not calculated
-        precision:0.9242209631728046, recall:0.3792502179598954, F1:0.5378116628889347, accuracy:0.8956574326053078, specificity:0.9940738279194705, auc:0.6866620229396829
-            
+          
 """
 
 os.chdir("/home/zhud/fist/ioh/Time-Series-Library/")
@@ -45,7 +43,7 @@ data_path = 'vitaldb_ioh_dataset_with_medication_invasive_group.csv'
 seq_len = 450   # 预测窗口数据点数
 label_len = 225 # 预测窗口加入label数据的点数
 pred_len = 150  # 预测窗口数据点数
-stime = 20      # 采样间隔
+stime = 2       # 采样间隔
 
 
 static_features = ['caseid', 'sex', 'age', 'bmi']  

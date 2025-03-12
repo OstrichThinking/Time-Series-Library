@@ -80,7 +80,7 @@ dynamic_features = [
     'Solar8000/ART_DBP',
     'Solar8000/ART_MBP', # TimeXer内生变量放在最后
     'prediction_maap'
-]    
+]
 static_features_str = ' '.join(static_features)
 dynamic_features_str = ' '.join(dynamic_features)
 

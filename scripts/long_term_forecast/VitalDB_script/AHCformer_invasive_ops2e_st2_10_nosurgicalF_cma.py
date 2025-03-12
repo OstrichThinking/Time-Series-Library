@@ -6,12 +6,13 @@ import sys
     🌟实验简述：
         - 使用 AHCformer 模型，对 VitalDB 数据集进行长期预测。
         - 450个点预测150个点
-        - 重新组织了代码结构，增加内生变量 patch_embedding 后的自注意力，使用通道门控机制为外生变量进行加权
     
     🏠数据集：
-        - vitaldb_ioh_dataset_with_medication_invasive_group.csv
-        - 有创组，总计 1840 个cases
-        - 每隔2s取一个点，15min预测5min，滑动窗口步长20s
+        - AHCformer_invasive_ops2e_st2_10_nosurgicalF_cma
+        - (残差+滤波)*2 + 均值填充
+        - /home/share/ioh/VitalDB_IOH/timeseries_by_caseids/cma/invasive_ops2e/dataset_vitaldb_cma_invasive_st2_ops2e.jsonl
+
+
     
     🚀模型：
         - AHCformer
@@ -71,10 +72,14 @@ stime = 2       # 采样间隔
 
 static_features = ['caseid', 'sex', 'age', 'bmi', 'time']
 dynamic_features = [
-                    'Solar8000/BT',
-                    'Solar8000/HR',
-                    'Solar8000/ART_DBP',
-                    'Solar8000/ART_MBP']    # TimeXer内生变量放在最后
+    'seq_time_stamp_list',
+    'pred_time_stamp_list',
+    'Solar8000/BT',
+    'Solar8000/HR',
+    'Solar8000/ART_DBP',
+    'Solar8000/ART_MBP', # TimeXer内生变量放在最后
+    'prediction_maap'
+]    
 static_features_str = ' '.join(static_features)
 dynamic_features_str = ' '.join(dynamic_features)
 
@@ -108,8 +113,8 @@ args=f"python run.py \
   --d_model 256 \
   --d_ff 512 \
   --itr 1 \
-  --batch_size 64 \
-  --train_epochs 50 \
+  --batch_size 4 \
+  --train_epochs 1 \
   --num_workers 10 \
   --use_multi_gpu \
   --devices 0,1,2,3 \

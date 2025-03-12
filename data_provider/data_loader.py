@@ -389,31 +389,33 @@ class VitalDBLoader_JSONL(Dataset):
             case_subset = case_list[val_cut:]
 
         # 处理 JSON 数据为结构化格式
-        df_raw = self.__process_json_data(case_subset)
+        self.__process_json_data(case_subset)
 
     def __process_json_data(self, case_subset):
         
         sample_list = defaultdict(list)
         # for case in tqdm(case_subset[:1]):
-        for case in tqdm(case_subset[:]):
+        for case in tqdm(case_subset):
             
             # 处理时序变量
             case_sample_num = 0
             for feature in self.dynamic_features:
-                # 对每个时序变量进行滑动窗口处理
-                feature_list = create_segment_list(case[feature], self.seq_len, self.pred_len)
-                case_sample_num = len(feature_list)
-                sample_list[feature].extend([item[:self.seq_len] for item in feature_list])
-                # 如果为目标变量，将其加入到预测目标列表
-                if feature == 'Solar8000/ART_MBP':
-                    sample_list['prediction_maap'].extend([item[-self.pred_len:] for item in feature_list])
+                if feature != 'prediction_maap' and feature != 'seq_time_stamp_list' and feature != 'pred_time_stamp_list':
+                    # 对每个时序变量进行滑动窗口处理
+                    case_sample_list = create_segment_list(case[feature], self.seq_len, self.pred_len)
+                    sample_list[feature].extend([item[:self.seq_len] for item in case_sample_list])
+                    # 如果为目标变量，将其加入到预测目标列表
+                    if feature == 'Solar8000/ART_MBP':
+                        sample_list['prediction_maap'].extend([item[-self.pred_len:] for item in case_sample_list])
+                    
+                    # 记录病例样本数量
+                    case_sample_num = len(case_sample_list)
             
-            # 梳理静态变量
+            # 处理静态变量
             case_timestamp_list = []
             for feature in self.static_features:
                 if feature != 'caseid' and feature != 'time':
-                    # 修复：使用列表推导式创建重复值，而不是使用np.full创建数组
-                    sample_list[feature].extend([case[feature]] * case_sample_num)
+                    sample_list[feature].extend(np.full(case_sample_num, case[feature]))
                 if feature == 'time':
                     times = case[feature].split('-')
                     start = int(times[0])
@@ -432,6 +434,8 @@ class VitalDBLoader_JSONL(Dataset):
                     self.scalers[feature].fit(np.array(sample_list[feature]).reshape(-1, 1))
             # 初始使用训练集拟合标准化 scaler
             for feature in self.dynamic_features:
+                if  feature == 'seq_time_stamp_list' and feature == 'pred_time_stamp_list':
+                    continue
                 if feature in self.scalers:
                     self.scalers[feature].fit(sample_list[feature])
         else:
@@ -444,6 +448,8 @@ class VitalDBLoader_JSONL(Dataset):
                 if feature != 'caseid' and feature != 'sex' and feature != 'time':
                     sample_list[feature] = self.scalers[feature].transform(np.array(sample_list[feature]).reshape(-1, 1))
             for feature in self.dynamic_features:
+                if feature == 'seq_time_stamp_list' and feature == 'pred_time_stamp_list':
+                    continue
                 if feature in self.scalers:
                     sample_list[feature] = self.scalers[feature].transform(sample_list[feature])
         
@@ -456,7 +462,6 @@ class VitalDBLoader_JSONL(Dataset):
             if 'Solar8000/NIBP_MBP' in self.scalers:
                 mbp = self.data['Solar8000/NIBP_MBP'][index]
             seq_x = np.stack([mbp], axis=1)
-
         else: # 'MS' 'M' 多变量时序预测
             seq_x = []
             for feature in self.static_features:
@@ -464,9 +469,8 @@ class VitalDBLoader_JSONL(Dataset):
                     seq_x.append(np.full(self.seq_len, self.data[feature][index]))
             
             for feature in self.dynamic_features:
-                if feature == 'prediction_maap':
-                    continue
-                seq_x.append(self.data[feature][index])
+                if feature != 'prediction_maap' and feature != 'seq_time_stamp_list' and feature != 'pred_time_stamp_list':
+                    seq_x.append(self.data[feature][index])
 
             seq_x = np.stack(seq_x, axis=1)
 
@@ -481,7 +485,7 @@ class VitalDBLoader_JSONL(Dataset):
         seq_y = np.concatenate([mbp_label[:, np.newaxis], prediction_maap[:, np.newaxis]], axis=0)
 
         seq_x_mark = self.data['seq_time_stamp_list'][index].reshape(-1, 1)
-        
+
         time_label = self.data['seq_time_stamp_list'][index][-self.label_len:]
         time_pred = self.data['pred_time_stamp_list'][index]
         seq_y_mark = np.concatenate([time_label[:, np.newaxis], time_pred[:, np.newaxis]], axis=0)
@@ -494,7 +498,7 @@ class VitalDBLoader_JSONL(Dataset):
 
     def inverse_transform(self, data, flag='y'):
         if flag == 'y':
-            return self.scalers['Solar8000/ART_MBP'].inverse_transform(data)
+            return self.scalers['prediction_maap'].inverse_transform(data)
         else:
             # 检查两个可能的键，返回一个包含两个结果的字典
             results = {}

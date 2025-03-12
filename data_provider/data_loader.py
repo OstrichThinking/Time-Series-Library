@@ -212,7 +212,7 @@ class Dataset_ETT_minute(Dataset):
 class Dataset_Custom(Dataset):
     def __init__(self, args, root_path, flag='train', size=None,
                  features='S', data_path='ETTh1.csv',
-                 target='OT', scale=True, timeenc=0, freq='h', seasonal_patterns=None):
+                 target='OT', scale=True, fitted_scaler=None, timeenc=0, freq='h', seasonal_patterns=None):
         # size [seq_len, label_len, pred_len]
         self.args = args
         # info
@@ -314,6 +314,9 @@ class Dataset_Custom(Dataset):
 
     def inverse_transform(self, data):
         return self.scaler.inverse_transform(data)
+
+    def _get_train_scaler(self):
+        return None
 
 
 class VitalDBLoader_JSONL(Dataset):

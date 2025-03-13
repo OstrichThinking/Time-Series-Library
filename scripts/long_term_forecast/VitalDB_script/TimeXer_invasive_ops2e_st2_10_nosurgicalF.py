@@ -29,22 +29,23 @@ import sys
           
 """
 
-os.chdir("/home/zhud/fist/ioh/Time-Series-Library/")
-os.environ['CUDA_VISIBLE_DEVICES'] = '0,1,2,3'
+# os.chdir("/home/zhud/fist/ioh/Time-Series-Library/")
+os.chdir("/home/temporal/zhud/Time-Series-Library")
+os.environ['CUDA_VISIBLE_DEVICES'] = '0,1,2,4'
 
 # 定义模型名称和路径
 model_name = 'TimeXer'
 task_name = 'long_term_forecast'
 model_id = 'TimeXer_invasive_ops2e_st2_10_nosurgicalF'
 
-root_path = '/home/share/ioh/VitalDB_IOH/timeseries_by_caseids/cma/invasive_ops2e/'
+root_path = '/home/data/ioh/cma_ioh/invasive_ops2e/'
 data_path = 'dataset_vitaldb_cma_invasive_st2_ops2e.jsonl'
 
 seq_len = 450   # 预测窗口数据点数
 label_len = 225 # 预测窗口加入label数据的点数
 pred_len = 150  # 预测窗口数据点数
 stime = 2       # 采样间隔
-s_win = 10      # 滑动窗口步长
+s_win = 20      # 滑动窗口步长
 
 
 static_features = ['caseid', 'sex', 'age', 'bmi', 'time']
@@ -81,7 +82,7 @@ args=f"python run.py \
   --pred_len {pred_len} \
   --stime {stime} \
   --s_win {s_win} \
-  --e_layers 3 \
+  --e_layers 2 \
   --factor 3 \
   --enc_in 7 \
   --dec_in 7 \
@@ -89,7 +90,7 @@ args=f"python run.py \
   --embed surgicalF \
   --des Exp \
   --d_model 256 \
-  --d_ff 512 \
+  --d_ff 256 \
   --itr 1 \
   --batch_size 64 \
   --train_epochs 50 \

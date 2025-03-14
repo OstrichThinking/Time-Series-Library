@@ -390,7 +390,7 @@ class VitalDBLoader_JSONL(Dataset):
         # 根据 falg 分割数据集
         if self.flag == 'train':
             case_subset = case_list[:train_cut]
-        elif self.flag == 'val':
+        elif self.flag == 'test':
             case_subset = case_list[train_cut:test_cut]
         else:
             case_subset = case_list[test_cut:]
@@ -459,7 +459,8 @@ class VitalDBLoader_JSONL(Dataset):
             for feature in self.dynamic_features:
                 if feature != 'seq_time_stamp_list' and feature != 'pred_time_stamp_list':
                     sample_list[feature] = self.scalers[feature].transform(np.array(sample_list[feature]))
-
+        
+        print(self.flag, len(sample_list[self.dynamic_features[0]]))
         self.data = sample_list
 
     def __getitem__(self, index):

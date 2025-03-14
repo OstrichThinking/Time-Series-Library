@@ -21,7 +21,7 @@ import sys
         - 学习率: 0.0001
     
     👋 实验后台启动命令
-        nohup python -u scripts/long_term_forecast/VitalDB_script/TimeXer_invasive_st2_10_nosurgicalF_cma_ts.py > checkpoints/TimeXer_invasive_st2_10_nosurgicalF_cma_ts.log 2>&1 &
+        nohup python -u scripts/long_term_forecast/VitalDB_script/TimeXer_invasive_st2_10_nosurgicalF_cma_ts_bp.py > checkpoints/TimeXer_invasive_st2_10_nosurgicalF_cma_ts_bp.log 2>&1 &
     
     🌞实验结果:
         - 测试集 (V100): 
@@ -29,27 +29,27 @@ import sys
         +--------------------+--------------------+--------------------+
         |        MSE         |        MAE         |        DTW         |
         +--------------------+--------------------+--------------------+
-        | 46.56724166870117  | 4.1267900466918945 |   Not calculated   |
+        |  46.3868408203125  | 4.1146697998046875 |   Not calculated   |
         +--------------------+--------------------+--------------------+
         分类性能比较:
         +--------------------+--------------------+--------------------+
         |        AUC         |      Accuracy      |       Recall       |
         +--------------------+--------------------+--------------------+
-        |      0.78512       |      0.95727       |      0.58802       |
+        |      0.78823       |      0.95797       |       0.5939       |
         +--------------------+--------------------+--------------------+
         |     Precision      |    Specificity     |         F1         |
         +--------------------+--------------------+--------------------+
-        |      0.69085       |      0.98222       |       0.6353       |
+        |      0.69715       |      0.98257       |       0.6414       |
         +--------------------+--------------------+--------------------+
         混淆矩阵:
         +--------------------+--------------------+--------------------+
         |         TP         |         FN         |         --         |
         +--------------------+--------------------+--------------------+
-        |        1600        |        1121        |         --         |
+        |        1616        |        1105        |         --         |
         +--------------------+--------------------+--------------------+
         |         FP         |         TN         |         --         |
         +--------------------+--------------------+--------------------+
-        |        716         |       39556        |         --         |
+        |        702         |       39570        |         --         |
         +--------------------+--------------------+--------------------+
           
 """
@@ -60,7 +60,7 @@ os.environ['CUDA_VISIBLE_DEVICES'] = '0,1,2,3'
 # 定义模型名称和路径
 model_name = 'TimeXer'
 task_name = 'long_term_forecast'
-model_id = 'TimeXer_invasive_st2_10_nosurgicalF_cma_ts'
+model_id = 'TimeXer_invasive_st2_10_nosurgicalF_cma_ts_bp'
 
 
 root_path = '/home/share/ioh/VitalDB_IOH/ioh_dataset_with_medication/'
@@ -77,8 +77,8 @@ static_features = ['caseid']
 dynamic_features = [
     'window_sample_time',                   # 观察窗口采样时间范围
     'prediction_window_time',               # 预测窗口时间范围
-    'Solar8000/BT_window_sample',
-    'Solar8000/HR_window_sample',
+    # 'Solar8000/BT_window_sample',
+    # 'Solar8000/HR_window_sample',
     'Solar8000/ART_DBP_window_sample',
     'Solar8000/ART_SBP_window_sample',
     'Solar8000/ART_MBP_window_sample',      # TimeXer内生变量放在最后
@@ -109,8 +109,8 @@ args=f"python run.py \
   --stime {stime} \
   --e_layers 3 \
   --factor 3 \
-  --enc_in 4 \
-  --dec_in 4 \
+  --enc_in 3 \
+  --dec_in 3 \
   --c_out 1 \
   --embed surgicalF \
   --des Exp \

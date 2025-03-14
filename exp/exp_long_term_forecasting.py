@@ -233,8 +233,6 @@ class Exp_Long_Term_Forecast(Exp_Basic):
                 batch_y = batch_y.detach().cpu().numpy()
                 if test_data.scale and self.args.inverse:
                     shape = batch_y.shape
-                    # print("testing..., outputs.shape {}".format(outputs.shape))
-                    # print("testing..., batch_y.shape {}".format(batch_y.shape))
                     if outputs.shape[-1] != batch_y.shape[-1]:
                         outputs = np.tile(outputs, [1, 1, int(batch_y.shape[-1] / outputs.shape[-1])])
                     

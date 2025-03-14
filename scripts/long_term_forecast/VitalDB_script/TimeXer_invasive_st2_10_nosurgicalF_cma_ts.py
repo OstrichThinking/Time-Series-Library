@@ -6,12 +6,11 @@ import sys
     🌟实验简述：
         - 使用 TimeXer 模型，对 VitalDB 数据集进行长期预测。
         - 450个点预测150个点
+        - 只用动态数据进行预测
     
     🏠数据集：
-        - AHCformer_invasive_ops2e_st2_10_nosurgicalF_cma
-        - (残差+滤波)*2 + 均值填充
-        - /home/share/ioh/VitalDB_IOH/timeseries_by_caseids/cma/invasive_ops2e/dataset_vitaldb_cma_invasive_st2_ops2e.jsonl
-
+        - vitaldb_ioh_dataset_with_medication_invasive_group.csv
+        - 有创组，总计 1840 个cases
     
     🚀模型：
         - TimeXer
@@ -22,7 +21,7 @@ import sys
         - 学习率: 0.0001
     
     👋 实验后台启动命令
-        nohup python -u scripts/long_term_forecast/VitalDB_script/TimeXer_invasive_ops2e_st2_10_nosurgicalF.py > checkpoints/TimeXer_invasive_ops2e_st2_10_nosurgicalF.log 2>&1 &
+        nohup python -u scripts/long_term_forecast/VitalDB_script/TimeXer_invasive_st2_10_nosurgicalF_cma_ts.py > checkpoints/TimeXer_invasive_st2_10_nosurgicalF_cma_ts.log 2>&1 &
     
     🌞实验结果:
         - 测试集 (V100): 
@@ -30,33 +29,32 @@ import sys
 """
 
 os.chdir("/home/zhud/fist/ioh/Time-Series-Library/")
-# os.chdir("/home/temporal/zhud/Time-Series-Library")
 os.environ['CUDA_VISIBLE_DEVICES'] = '0,1,2,3'
 
 # 定义模型名称和路径
 model_name = 'TimeXer'
 task_name = 'long_term_forecast'
-model_id = 'TimeXer_invasive_ops2e_st2_10_nosurgicalF'
+model_id = 'TimeXer_invasive_st2_10_nosurgicalF_cma_ts'
 
-# root_path = '/home/data/ioh/cma_ioh/invasive_ops2e/'
-root_path = '/home/share/ioh/VitalDB_IOH/timeseries_by_caseids/cma/invasive_ops2e/'
-data_path = 'dataset_vitaldb_cma_invasive_st2_ops2e.jsonl'
+
+root_path = '/home/share/ioh/VitalDB_IOH/ioh_dataset_with_medication/'
+data_path = 'vitaldb_ioh_dataset_with_medication_invasive_group.csv'
 
 seq_len = 450   # 预测窗口数据点数
-label_len = 75  # 预测窗口加入label数据的点数
+label_len = 225 # 预测窗口加入label数据的点数
 pred_len = 150  # 预测窗口数据点数
 stime = 2       # 采样间隔
-s_win = 600      # 滑动窗口步长
 
 
-static_features = ['caseid', 'sex', 'age', 'bmi', 'time']
+# static_features = ['caseid', 'sex', 'age', 'bmi']
+static_features = ['caseid']
 dynamic_features = [
-    'seq_time_stamp_list',
-    'pred_time_stamp_list',
-    'Solar8000/BT',
-    'Solar8000/HR',
-    'Solar8000/ART_DBP',
-    'Solar8000/ART_MBP', # TimeXer内生变量放在最后
+    'window_sample_time',                   # 观察窗口采样时间范围
+    'prediction_window_time',               # 预测窗口时间范围
+    'Solar8000/BT_window_sample',
+    'Solar8000/HR_window_sample',
+    'Solar8000/ART_DBP_window_sample',
+    'Solar8000/ART_MBP_window_sample',      # TimeXer内生变量放在最后
     'prediction_maap'
 ]
 static_features_str = ' '.join(static_features)
@@ -74,7 +72,7 @@ args=f"python run.py \
   --model {model_name} \
   --swan_project {swan_project} \
   --swan_workspace {swan_workspace} \
-  --data VitalDB_JSONL \
+  --data VitalDB \
   --features MS \
   --static_features {static_features_str} \
   --dynamic_features {dynamic_features_str} \
@@ -82,20 +80,19 @@ args=f"python run.py \
   --label_len {label_len} \
   --pred_len {pred_len} \
   --stime {stime} \
-  --s_win {s_win} \
-  --e_layers 2 \
+  --e_layers 3 \
   --factor 3 \
-  --enc_in 7 \
-  --dec_in 7 \
+  --enc_in 23 \
+  --dec_in 23 \
   --c_out 1 \
   --embed surgicalF \
   --des Exp \
   --d_model 256 \
-  --d_ff 256 \
+  --d_ff 512 \
   --itr 1 \
-  --batch_size 16 \
+  --batch_size 64 \
   --train_epochs 50 \
-  --num_workers 10 \
+  --num_workers 32 \
   --use_multi_gpu \
   --devices 0,1,2,3 \
   --inverse"

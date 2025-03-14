@@ -334,9 +334,12 @@ class VitalDBLoader_JSONL(Dataset):
         self.s_win = args.s_win
         
         # 训练:验证:测试 比例为 7:1:2 
-        assert flag in ['train', 'val', 'test',]
-        type_map = {'train': 0, 'val': 1, 'test': 2}
-        self.set_type = type_map[flag]
+        # assert flag in ['train', 'val', 'test',]
+        # type_map = {'train': 0, 'val': 1, 'test': 2}
+        # self.set_type = type_map[flag]
+
+        assert flag in ['train', 'val', 'test']    
+        self.flag = flag
 
         self.features = features
         self.static_features = args.static_features
@@ -352,7 +355,7 @@ class VitalDBLoader_JSONL(Dataset):
 
         # Initialize scalers for each feature to be standardized
         self.scalers = {feature: StandardScaler() for feature in self.static_features if feature != 'caseid' and feature != 'sex' and feature != 'time'}
-        self.scalers.update({feature: StandardScaler() for feature in self.dynamic_features})
+        self.scalers.update({feature: StandardScaler() for feature in self.dynamic_features if feature != 'seq_time_stamp_list' and feature != 'pred_time_stamp_list'})
         
         self.fitted_scaler = fitted_scaler
 
@@ -382,15 +385,15 @@ class VitalDBLoader_JSONL(Dataset):
         # 计算数据集分割点
         n_caseids = len(case_list)
         train_cut = int(n_caseids * 0.7)
-        val_cut = train_cut + int(n_caseids * 0.1)
+        test_cut = train_cut + int(n_caseids * 0.2)
 
-        # 根据 set_type 分割数据集
-        if self.set_type == 0:  # training set
+        # 根据 falg 分割数据集
+        if self.flag == 'train':
             case_subset = case_list[:train_cut]
-        elif self.set_type == 1:  # validation set
-            case_subset = case_list[train_cut:val_cut]
-        else:  # test set
-            case_subset = case_list[val_cut:]
+        elif self.flag == 'val':
+            case_subset = case_list[train_cut:test_cut]
+        else:
+            case_subset = case_list[test_cut:]
 
         # 处理 JSON 数据为结构化格式
         self.__process_json_data(case_subset)
@@ -399,7 +402,7 @@ class VitalDBLoader_JSONL(Dataset):
         
         sample_list = defaultdict(list)
         # for case in tqdm(case_subset[:1]):
-        for case in tqdm(case_subset):
+        for case in tqdm(case_subset[:]):
             
             # 处理时序变量
             case_sample_num = 0
@@ -419,7 +422,11 @@ class VitalDBLoader_JSONL(Dataset):
             case_timestamp_list = []
             for feature in self.static_features:
                 if feature != 'caseid' and feature != 'time':
-                    sample_list[feature].extend(np.full(case_sample_num, case[feature]))
+                    # 按照case切分的样本数重复静态变量的数量
+                    case_static_list = np.full(case_sample_num, case[feature])
+                    # 将静态变量对齐时序时间步长 seq_len
+                    case_seq_static_list = [np.full(self.seq_len, item) for item in case_static_list]
+                    sample_list[feature].extend(case_seq_static_list)
                 if feature == 'time':
                     times = case[feature].split('-')
                     start = int(times[0])
@@ -431,17 +438,15 @@ class VitalDBLoader_JSONL(Dataset):
             sample_list['seq_time_stamp_list'].extend([item[:self.seq_len] for item in timestamp_list])
             sample_list['pred_time_stamp_list'].extend([item[-self.pred_len:] for item in timestamp_list])
         
-        if self.scale and self.set_type == 0:
+        if self.scale and self.flag == 'train':
             print("Fitting scalers on training data...")
             for feature in self.static_features:
                 if feature != 'caseid' and feature != 'sex' and feature != 'time':
-                    self.scalers[feature].fit(np.array(sample_list[feature]).reshape(-1, 1))
+                    self.scalers[feature].fit(np.array(sample_list[feature]))
             # 初始使用训练集拟合标准化 scaler
             for feature in self.dynamic_features:
-                if  feature == 'seq_time_stamp_list' and feature == 'pred_time_stamp_list':
-                    continue
-                if feature in self.scalers:
-                    self.scalers[feature].fit(sample_list[feature])
+                if  feature != 'seq_time_stamp_list' and feature != 'pred_time_stamp_list':
+                    self.scalers[feature].fit(np.array(sample_list[feature]))
         else:
             # 测试和验证时，使用拟合好的 scaler
             self.scalers = self.fitted_scaler
@@ -450,13 +455,11 @@ class VitalDBLoader_JSONL(Dataset):
             print("Transforming data with fitted scalers...")
             for feature in self.static_features:
                 if feature != 'caseid' and feature != 'sex' and feature != 'time':
-                    sample_list[feature] = self.scalers[feature].transform(np.array(sample_list[feature]).reshape(-1, 1))
+                    sample_list[feature] = self.scalers[feature].transform(np.array(sample_list[feature]))
             for feature in self.dynamic_features:
-                if feature == 'seq_time_stamp_list' and feature == 'pred_time_stamp_list':
-                    continue
-                if feature in self.scalers:
-                    sample_list[feature] = self.scalers[feature].transform(sample_list[feature])
-        
+                if feature != 'seq_time_stamp_list' and feature != 'pred_time_stamp_list':
+                    sample_list[feature] = self.scalers[feature].transform(np.array(sample_list[feature]))
+
         self.data = sample_list
 
     def __getitem__(self, index):
@@ -470,7 +473,7 @@ class VitalDBLoader_JSONL(Dataset):
             seq_x = []
             for feature in self.static_features:
                 if feature != 'caseid' and feature != 'time':
-                    seq_x.append(np.full(self.seq_len, self.data[feature][index]))
+                    seq_x.append(self.data[feature][index])
             
             for feature in self.dynamic_features:
                 if feature != 'prediction_maap' and feature != 'seq_time_stamp_list' and feature != 'pred_time_stamp_list':

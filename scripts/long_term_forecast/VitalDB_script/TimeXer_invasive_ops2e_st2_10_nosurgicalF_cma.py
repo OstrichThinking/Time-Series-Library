@@ -22,7 +22,7 @@ import sys
         - 学习率: 0.0001
     
     👋 实验后台启动命令
-        nohup python -u scripts/long_term_forecast/VitalDB_script/TimeXer_invasive_ops2e_st2_10_nosurgicalF.py > checkpoints/TimeXer_invasive_ops2e_st2_10_nosurgicalF.log 2>&1 &
+        nohup python -u scripts/long_term_forecast/VitalDB_script/TimeXer_invasive_ops2e_st2_10_nosurgicalF_cma.py > checkpoints/TimeXer_invasive_ops2e_st2_10_nosurgicalF_cma.log 2>&1 &
     
     🌞实验结果:
         - 测试集 (V100): 
@@ -62,7 +62,7 @@ os.environ['CUDA_VISIBLE_DEVICES'] = '0,1,2,3'
 # 定义模型名称和路径
 model_name = 'TimeXer'
 task_name = 'long_term_forecast'
-model_id = 'TimeXer_invasive_ops2e_st2_10_nosurgicalF'
+model_id = 'TimeXer_invasive_ops2e_st2_10_nosurgicalF_cma'
 
 # root_path = '/home/data/ioh/cma_ioh/invasive_ops2e/'
 root_path = '/home/share/ioh/VitalDB_IOH/timeseries_by_caseids/cma/invasive_ops2e/'

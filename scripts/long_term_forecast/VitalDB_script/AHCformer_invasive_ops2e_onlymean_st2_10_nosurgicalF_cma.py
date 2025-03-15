@@ -10,7 +10,7 @@ import sys
     🏠数据集：
         - AHCformer_invasive_ops2e_onlymean_st2_10_nosurgicalF_cma
         - (残差+滤波)*2 + 均值填充
-        - /home/share/ioh/VitalDB_IOH/timeseries_by_caseids/cma/invasive_ops2e/dataset_vitaldb_cma_invasive_st2_ops2e.jsonl
+        - /home/share/ioh/VitalDB_IOH/timeseries_by_caseids/cma/invasive_ops2e/dataset_vitaldb_cma_invasive_st2_ops2e_onlymean.jsonl
 
 
     
@@ -45,7 +45,7 @@ model_id = 'AHCformer_invasive_ops2e_onlymean_st2_10_nosurgicalF_cma'
 
 # root_path = '/home/data/ioh/cma_ioh/invasive_ops2e/'
 root_path = '/home/share/ioh/VitalDB_IOH/timeseries_by_caseids/cma/invasive_ops2e/'
-data_path = 'dataset_vitaldb_cma_invasive_st2_ops2e_dif50_mean.jsonl'
+data_path = 'dataset_vitaldb_cma_invasive_st2_ops2e_onlymean.jsonl'
 
 # CMA有创
 

@@ -10,7 +10,7 @@ import sys
     🏠数据集：
         - AHCformer_invasive_ops2e_st2_10_nosurgicalF_cma
         - 突变50 + 均值填充
-        - /home/data/ioh/cma_ioh/invasive_ops2e/dataset_vitaldb_cma_invasive_st2_ops2e_dif50_mean.jsonl
+        - /home/data/ioh/cma_ioh/invasive_ops2e/dataset_vitaldb_cma_invasive_st2_ops2e_onlymean.json.jsonl
 
     
     🚀模型：
@@ -40,7 +40,7 @@ model_id = 'TimeXer_invasive_ops2e_onlymean_st2_10_nosurgicalF'
 
 # root_path = '/home/data/ioh/cma_ioh/invasive_ops2e/'
 root_path = '/home/share/ioh/VitalDB_IOH/timeseries_by_caseids/cma/invasive_ops2e/'
-data_path = 'dataset_vitaldb_cma_invasive_st2_ops2e_dif50_mean.jsonl'
+data_path = 'dataset_vitaldb_cma_invasive_st2_ops2e_onlymean.jsonl'
 
 seq_len = 450   # 预测窗口数据点数
 label_len = 75  # 预测窗口加入label数据的点数

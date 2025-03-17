@@ -78,8 +78,8 @@ def ioh_classification_metric(pred, true, IOH_value=65, stime=20):
         auc = roc_auc_score(true_labels, pred_labels)
     else:
         auc = float('nan')  # 或者选择一个合适的默认值  #TODO
-    
-    return precision, recall, F1, accuracy, specificity, auc
+
+    return auc, accuracy, recall, precision, specificity, F1, TP, FP, FN, TN
     
 
 def Check_If_IOH(time_series, IOH_value, duration):

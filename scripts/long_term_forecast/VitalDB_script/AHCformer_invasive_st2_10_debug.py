@@ -4,7 +4,7 @@ import sys
 
 """
     🌟实验简述：
-        - 使用 TimeXer 模型，对 VitalDB 数据集进行长期预测。
+        - 使用 AHCformer 模型，对 VitalDB 数据集进行长期预测。
         - 450个点预测150个点
     
     🏠数据集：
@@ -13,7 +13,7 @@ import sys
         - 每隔2s取一个点，15min预测5min，滑动窗口步长20s
     
     🚀模型：
-        - TimeXer
+        - AHCformer
     
     🔍训练参数：
         - 训练轮数: 50
@@ -21,22 +21,22 @@ import sys
         - 学习率: 0.0001
     
     👋 实验后台启动命令
-        nohup python -u scripts/long_term_forecast/VitalDB_script/TimeXer_invasive_st2_10_surgicalF.py > checkpoints/TimeXer_invasive_st2_10_surgicalF.log 2>&1 &
+        nohup python -u scripts/long_term_forecast/VitalDB_script/AHCformer_invasive_st2_10_debug.py > checkpoints/AHCformer_invasive_st2_10_debug.log 2>&1 &
     
     🌞实验结果:
         - 测试集 (V100): 
-      
+     
 """
 
 os.chdir("/home/zhud/fist/ioh/Time-Series-Library/")
 
 # 设置只使用一张 GPU
-os.environ['CUDA_VISIBLE_DEVICES'] = '0,1,2,3'
+os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 
 # 定义模型名称和路径
-model_name = 'TimeXer'
+model_name = 'AHCformer'
 task_name = 'long_term_forecast'
-model_id = 'TimeXer_invasive_st2_10_surgicalF'
+model_id = 'AHCformer_invasive_st2_10_debug'
 
 
 root_path = '/home/share/ioh/VitalDB_IOH/ioh_dataset_with_medication/'
@@ -45,7 +45,7 @@ data_path = 'vitaldb_ioh_dataset_with_medication_invasive_group.csv'
 seq_len = 450   # 预测窗口数据点数
 label_len = 225 # 预测窗口加入label数据的点数
 pred_len = 150  # 预测窗口数据点数
-stime = 2       # 采样间隔
+stime = 20      # 采样间隔
 
 
 static_features = ['caseid', 'sex', 'age', 'bmi']  
@@ -106,16 +106,15 @@ args=f"python run.py \
   --dec_in 23 \
   --c_out 1 \
   --embed surgicalF \
-  --use_embed \
   --des Exp \
   --d_model 256 \
   --d_ff 512 \
   --itr 1 \
-  --batch_size 64 \
-  --train_epochs 50 \
-  --num_workers 32 \
+  --batch_size 4 \
+  --train_epochs 1 \
+  --num_workers 10 \
   --use_multi_gpu \
-  --devices 0,1,2,3 \
+  --devices 0 \
   --inverse"
 
 

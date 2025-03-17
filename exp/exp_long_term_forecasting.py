@@ -452,6 +452,18 @@ class Exp_Long_Term_Forecast(Exp_Basic):
 
                 preds.append(pred)
                 trues.append(true)
+
+                # 原版
+                # if i % 20 == 0:
+                #     input = batch_x.detach().cpu().numpy()
+                #     if test_data.scale and self.args.inverse:
+                #         shape = input.shape
+                #         input = test_data.inverse_transform(input.reshape(shape[0] * shape[1], -1)).reshape(shape)
+                #     gt = np.concatenate((input[0, :, -1], true[0, :, -1]), axis=0)
+                #     pd = np.concatenate((input[0, :, -1], pred[0, :, -1]), axis=0)
+                #     visual(gt, pd, os.path.join(folder_path, str(i) + '.pdf'))
+
+
                 if i % 20 == 0:
                     input = batch_x.detach().cpu().numpy()
                     if test_data.scale and self.args.inverse:
@@ -509,24 +521,33 @@ class Exp_Long_Term_Forecast(Exp_Basic):
             dtw = 'Not calculated'
 
         mae, mse, rmse, mape, mspe = metric(preds, trues)
-        print("模型性能比较:")
+        print("波形预测性能比较:")
         print("+" + "-"*20 + "+" + "-"*20 + "+" + "-"*20 + "+")
         print("|{:^20}|{:^20}|{:^20}|".format("MSE", "MAE", "DTW"))
         print("+" + "-"*20 + "+" + "-"*20 + "+" + "-"*20 + "+")
-        print("|{:^20}|{:^20}|{:^20}|".format(mse, mae, dtw))
+        print("|{:^20}|{:^20}|{:^20}|".format(np.around(mse, decimals=5), np.around(mae, 5), dtw))
         print("+" + "-"*20 + "+" + "-"*20 + "+" + "-"*20 + "+")
 
-        auc, accuracy, recall, precision, specificity, F1 = ioh_classification_metric(preds, trues, stime=self.args.stime)
-        print("模型分类性能比较:")
+        auc, accuracy, recall, precision, specificity, F1, TP, FP, FN, TN = ioh_classification_metric(preds, trues, stime=self.args.stime)
+        print("分类性能比较:")
         print("+" + "-"*20 + "+" + "-"*20 + "+" + "-"*20 + "+")
         print("|{:^20}|{:^20}|{:^20}|".format("AUC", "Accuracy", "Recall"))
         print("+" + "-"*20 + "+" + "-"*20 + "+" + "-"*20 + "+")
-        print("|{:^20}|{:^20}|{:^20}|".format(auc, accuracy, recall))
-        print("+" + "-"*20 + "+" + "-"*20 + "+" + "-"*20 + "+")
+        print("|{:^20}|{:^20}|{:^20}|".format(round(auc, 5), round(accuracy, 5), round(recall, 5)))
         print("+" + "-"*20 + "+" + "-"*20 + "+" + "-"*20 + "+")
         print("|{:^20}|{:^20}|{:^20}|".format("Precision", "Specificity", "F1"))
         print("+" + "-"*20 + "+" + "-"*20 + "+" + "-"*20 + "+")
-        print("|{:^20}|{:^20}|{:^20}|".format(precision, specificity, F1))
+        print("|{:^20}|{:^20}|{:^20}|".format(round(precision, 5), round(specificity, 5), round(F1, 5)))
+        print("+" + "-"*20 + "+" + "-"*20 + "+" + "-"*20 + "+")
+        print("混淆矩阵:")
+        print("+" + "-"*20 + "+" + "-"*20 + "+" + "-"*20 + "+")
+        print("|{:^20}|{:^20}|{:^20}|".format("TP", "FN", "--"))
+        print("+" + "-"*20 + "+" + "-"*20 + "+" + "-"*20 + "+")
+        print("|{:^20}|{:^20}|{:^20}|".format(TP, FN, '--'))
+        print("+" + "-"*20 + "+" + "-"*20 + "+" + "-"*20 + "+")
+        print("|{:^20}|{:^20}|{:^20}|".format("FP", "TN", "--"))
+        print("+" + "-"*20 + "+" + "-"*20 + "+" + "-"*20 + "+")
+        print("|{:^20}|{:^20}|{:^20}|".format(FP, TN, '--'))
         print("+" + "-"*20 + "+" + "-"*20 + "+" + "-"*20 + "+")
         
         time_now = time.time()

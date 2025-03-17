@@ -6,6 +6,7 @@ import sys
     🌟实验简述：
         - 使用 AHCformer 模型，对 VitalDB 数据集进行长期预测。
         - 450个点预测150个点
+        - 重新组织了代码结构，增加内生变量 patch_embedding 后的自注意力，使用通道门控机制为外生变量进行加权
     
     🏠数据集：
         - vitaldb_ioh_dataset_with_medication_invasive_group.csv
@@ -25,6 +26,8 @@ import sys
     
     🌞实验结果:
         - 测试集 (V100): 
+        模型性能比较:
+        
      
 """
 
@@ -45,12 +48,13 @@ data_path = 'vitaldb_ioh_dataset_with_medication_invasive_group.csv'
 seq_len = 450   # 预测窗口数据点数
 label_len = 225 # 预测窗口加入label数据的点数
 pred_len = 150  # 预测窗口数据点数
-stime = 20      # 采样间隔
+stime = 2       # 采样间隔
 
 
 static_features = ['caseid', 'sex', 'age', 'bmi']  
 dynamic_features = [
                     'window_sample_time',                   # 观察窗口采样时间范围
+                    'prediction_window_time',               # 预测窗口时间范围
                     'Solar8000/ART_DBP_window_sample',
                     'Solar8000/ART_SBP_window_sample',
                     'Solar8000/BT_window_sample',
@@ -74,7 +78,6 @@ dynamic_features = [
                     'Solar8000/VENT_MAWP_window_sample',
                     'Solar8000/VENT_MV_window_sample',
                     'Solar8000/VENT_RR_window_sample',
-                    'prediction_window_time',               # 预测窗口时间范围
                     'Solar8000/ART_MBP_window_sample',   # TimeXer内生变量放在最后
                     'prediction_maap'] 
 static_features_str = ' '.join(static_features)

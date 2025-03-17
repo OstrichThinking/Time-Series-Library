@@ -4,8 +4,9 @@ import sys
 
 """
     🌟实验简述：
-        - 使用 TimeXer 模型，对 VitalDB 数据集进行长期预测。
+        - 使用 AHCformer 模型，对 VitalDB 数据集进行长期预测。
         - 450个点预测150个点
+        - 重新组织了代码结构，增加内生变量 patch_embedding 后的自注意力，使用通道门控机制为外生变量进行加权
     
     🏠数据集：
         - vitaldb_ioh_dataset_with_medication_invasive_group.csv
@@ -13,7 +14,7 @@ import sys
         - 每隔2s取一个点，15min预测5min，滑动窗口步长20s
     
     🚀模型：
-        - TimeXer
+        - AHCformer
     
     🔍训练参数：
         - 训练轮数: 50
@@ -21,11 +22,12 @@ import sys
         - 学习率: 0.0001
     
     👋 实验后台启动命令
-        nohup python -u scripts/long_term_forecast/VitalDB_script/TimeXer_invasive_st2_10_surgicalF.py > checkpoints/TimeXer_invasive_st2_10_surgicalF.log 2>&1 &
+        nohup python -u scripts/long_term_forecast/VitalDB_script/AHCformer_invasive_st2_10_nosurgicalF_cma.py > checkpoints/AHCformer_invasive_st2_10_nosurgicalF_cma.log 2>&1 &
     
     🌞实验结果:
         - 测试集 (V100): 
-      
+        模型性能比较:
+     
 """
 
 os.chdir("/home/zhud/fist/ioh/Time-Series-Library/")
@@ -34,9 +36,9 @@ os.chdir("/home/zhud/fist/ioh/Time-Series-Library/")
 os.environ['CUDA_VISIBLE_DEVICES'] = '0,1,2,3'
 
 # 定义模型名称和路径
-model_name = 'TimeXer'
+model_name = 'AHCformer'
 task_name = 'long_term_forecast'
-model_id = 'TimeXer_invasive_st2_10_surgicalF'
+model_id = 'AHCformer_invasive_st2_10_nosurgicalF_cma'
 
 
 root_path = '/home/share/ioh/VitalDB_IOH/ioh_dataset_with_medication/'
@@ -48,35 +50,15 @@ pred_len = 150  # 预测窗口数据点数
 stime = 2       # 采样间隔
 
 
-static_features = ['caseid', 'sex', 'age', 'bmi']  
+static_features = ['caseid', 'sex', 'age', 'bmi']
 dynamic_features = [
                     'window_sample_time',                   # 观察窗口采样时间范围
+                    'prediction_window_time',               # 预测窗口时间范围
                     'Solar8000/ART_DBP_window_sample',
-                    'Solar8000/ART_SBP_window_sample',
                     'Solar8000/BT_window_sample',
                     'Solar8000/HR_window_sample',
-                    # 用药
-                    'Orchestra/PPF20_CE_window_sample',
-                    'Orchestra/PPF20_CP_window_sample',
-                    'Orchestra/PPF20_CT_window_sample',
-                    'Orchestra/PPF20_RATE_window_sample',
-                    # 'Orchestra/PPF20_VOL',
-                    'Orchestra/RFTN20_CE_window_sample',
-                    'Orchestra/RFTN20_CP_window_sample',
-                    'Orchestra/RFTN20_CT_window_sample',
-                    'Orchestra/RFTN20_RATE_window_sample',
-                    # 'Orchestra/RFTN20_VOL',
-                    # 呼吸相关
-                    'Solar8000/ETCO2_window_sample',
-                    'Solar8000/FEO2_window_sample',
-                    'Solar8000/FIO2_window_sample',
-                    'Solar8000/INCO2_window_sample',
-                    'Solar8000/VENT_MAWP_window_sample',
-                    'Solar8000/VENT_MV_window_sample',
-                    'Solar8000/VENT_RR_window_sample',
-                    'prediction_window_time',               # 预测窗口时间范围
                     'Solar8000/ART_MBP_window_sample',   # TimeXer内生变量放在最后
-                    'prediction_maap'] 
+                    'prediction_maap']
 static_features_str = ' '.join(static_features)
 dynamic_features_str = ' '.join(dynamic_features)
 
@@ -102,18 +84,17 @@ args=f"python run.py \
   --stime {stime} \
   --e_layers 3 \
   --factor 3 \
-  --enc_in 23 \
-  --dec_in 23 \
+  --enc_in 7 \
+  --dec_in 7 \
   --c_out 1 \
   --embed surgicalF \
-  --use_embed \
   --des Exp \
   --d_model 256 \
   --d_ff 512 \
   --itr 1 \
   --batch_size 64 \
   --train_epochs 50 \
-  --num_workers 32 \
+  --num_workers 10 \
   --use_multi_gpu \
   --devices 0,1,2,3 \
   --inverse"

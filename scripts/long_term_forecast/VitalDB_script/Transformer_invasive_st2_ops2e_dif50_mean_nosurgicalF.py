@@ -22,7 +22,7 @@ import sys
         - 学习率: 0.0001
     
     👋 实验后台启动命令
-        nohup python -u scripts/long_term_forecast/VitalDB_script/Transformer_invasive_st2_ops2e_nosurgicalF.py > checkpoints/output_Transformer_invasive_st2_ops2e_nosurgicalF.log 2>&1 &
+        nohup python -u scripts/long_term_forecast/VitalDB_script/Transformer_invasive_st2_ops2e_dif50_mean_nosurgicalF.py > checkpoints/output_Transformer_invasive_st2_ops2e_dif50_mean_nosurgicalF.log 2>&1 &
     
     🌞实验结果:
 
@@ -39,7 +39,7 @@ os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 # TODO 定义模型名称和数据集路径
 model_name = 'Transformer'
 task_name = 'long_term_forecast'
-model_id = f'invasive_st2_ops2e'  
+model_id = f'invasive_st2_ops2e_onlymean'  
 
 # # A100数据集路径
 # root_path = '/home/data/ioh/cma_ioh/invasive_ops2e/'
@@ -47,7 +47,7 @@ model_id = f'invasive_st2_ops2e'
 root_path = '/home/share/ioh/VitalDB_IOH/timeseries_by_caseids/cma/invasive_ops2e/'
 
 # data_path = 'ioh_dataset_noninvasive_st30_5.csv'
-data_path = 'dataset_vitaldb_cma_invasive_st2_ops2e.jsonl'
+data_path = 'dataset_vitaldb_cma_invasive_st2_ops2e_dif50_mean.jsonl'
 
 seq_len = 450   # 预测窗口数据点数
 label_len = 225 # 预测窗口加入label数据的点数

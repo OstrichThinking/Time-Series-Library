@@ -72,7 +72,7 @@ seq_len = 450   # 预测窗口数据点数
 label_len = 75  # 预测窗口加入label数据的点数
 pred_len = 150  # 预测窗口数据点数
 stime = 2       # 采样间隔
-s_win = 600      # 滑动窗口步长
+s_win = 150      # 滑动窗口步长
 
 
 static_features = ['caseid', 'sex', 'age', 'bmi', 'time']

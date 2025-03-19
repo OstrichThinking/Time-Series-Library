@@ -105,10 +105,12 @@ if __name__ == '__main__':
                         help='down sampling method, only support avg, max, conv')
     parser.add_argument('--seg_len', type=int, default=96,
                         help='the length of segmen-wise iteration of SegRNN')
-    parser.add_argument('--stime', type=int, default=20,
-                        help='the time interval of sampling')
     parser.add_argument('--s_win', type=int, default=20,
                         help='the time interval of sliding window')
+    parser.add_argument('--stime', type=int, default=2,
+                        help='the time interval of dataset sampling')
+    parser.add_argument('--exp_stime', type=int, default=2,
+                        help='the time interval of exp sampling')
 
     # optimization
     parser.add_argument('--num_workers', type=int, default=10, help='data loader num workers')

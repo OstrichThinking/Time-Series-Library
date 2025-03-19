@@ -120,75 +120,25 @@ def cal_accuracy(y_pred, y_true):
     return np.mean(y_pred == y_true)
 
 
-# def create_segment_list(ts_list, obs_win_len, pred_win_len, step_len=0):
-#     """
-#     Split a time series into segments of specified length.
+def create_segment_list(ts_list, obs_win_len, pred_win_len, step_len, stime, exp_stime):
+   
+    # 数据集数据点采样点间隔与实验设置不同 ———> 需要降采样
+    if stime != exp_stime:
+        ts_list = ts_list[::exp_stime//stime]
     
-#     Args:
-#         ts_list: The time series data (list or array)
-#         total_win_len: The length of each segment
-        
-#     Returns:
-#         List of segments, each of length total_win_len
-#     """
-
-#     total_win_len = obs_win_len + pred_win_len
-
-#     # Convert to numpy array for efficient slicing
-#     ts_array = np.array(ts_list)
-    
-#     # Calculate number of complete segments
-#     total_length = len(ts_array)
-#     num_segments = total_length // total_win_len
-    
-#     segments = []
-    
-#     # Create segments
-#     for i in range(num_segments):
-#         start_idx = i * total_win_len
-#         end_idx = start_idx + total_win_len
-#         segment = ts_array[start_idx:end_idx]
-#         segments.append(segment)
-
-#     return segments
-
-def create_segment_list(ts_list, obs_win_len, pred_win_len, step_len=0):
-    """
-    Split a time series into segments using a sliding window with specified step length.
-    
-    Args:
-        ts_list: The time series data (list or array)
-        obs_win_len: Length of the observation window
-        pred_win_len: Length of the prediction window
-        step_len: Step size for the sliding window (default=0 means equal to total_win_len)
-        
-    Returns:
-        List of segments, each of length obs_win_len + pred_win_len
-    """
     total_win_len = obs_win_len + pred_win_len
-
-    # Convert to numpy array for efficient slicing
     ts_array = np.array(ts_list)
-    
-    # Calculate total length of the time series
     total_length = len(ts_array)
     
-    # If step_len is 0 or invalid, set it to total_win_len (non-overlapping segments)
-    if step_len <= 0:
-        step_len = total_win_len
-    
-    # Calculate number of segments based on sliding window
     if total_length < total_win_len:
-        return []  # Return empty list if time series is shorter than window
-    num_segments = (total_length - total_win_len) // step_len + 1
+        return []
     
+    num_segments = (total_length - total_win_len) // step_len + 1
     segments = []
     
-    # Create segments using sliding window
     for i in range(num_segments):
         start_idx = i * step_len
         end_idx = start_idx + total_win_len
-        # Ensure we don't exceed the array bounds
         if end_idx <= total_length:
             segment = ts_array[start_idx:end_idx]
             segments.append(segment)

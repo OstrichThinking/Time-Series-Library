@@ -450,7 +450,7 @@ class VitalDBLoader_JSONL(Dataset):
             sample_list['seq_time_stamp_list'].extend([item[:self.seq_len] for item in timestamp_list])
             sample_list['pred_time_stamp_list'].extend([item[-self.pred_len:] for item in timestamp_list])
         
-        print(self.flag + ' before diff 60 :', len(sample_list[self.dynamic_features[0]]))
+        print(self.flag + ' before diff 50 :', len(sample_list[self.dynamic_features[0]]))
         
         # 检查每个样本是否有突变大于50的序列
         valid_sample_list = defaultdict(list)
@@ -466,7 +466,7 @@ class VitalDBLoader_JSONL(Dataset):
                     # 计算差分
                     feature_diffs = np.abs(np.diff(sample_list[feature][i]))
                     # 检查是否有突变大于50
-                    if np.any(feature_diffs > 60):
+                    if np.any(feature_diffs > 50):
                         valid_sample = False
                         break
             
@@ -479,7 +479,7 @@ class VitalDBLoader_JSONL(Dataset):
             current_index += 1
         
         sample_list = valid_sample_list
-        print(self.flag + ' after diff 60 :', len(sample_list[self.dynamic_features[0]]))
+        print(self.flag + ' after diff 50 :', len(sample_list[self.dynamic_features[0]]))
         
         if self.scale and self.flag == 'train':
             print("Fitting scalers on training data...")

@@ -30,7 +30,7 @@ import sys
 
 # os.chdir("/home/zhud/fist/ioh/Time-Series-Library/")
 os.chdir(os.getcwd())
-os.environ['CUDA_VISIBLE_DEVICES'] = '0,1'
+os.environ['CUDA_VISIBLE_DEVICES'] = '5,6'
 
 # 定义模型名称和路径
 model_name = 'TimeXer'
@@ -41,17 +41,26 @@ root_path = '/home/data/ioh/cma_ioh/invasive_ops2e/'
 # root_path = '/home/share/ioh/VitalDB_IOH/timeseries_by_caseids/cma/invasive_ops2e/'
 data_path = 'dataset_vitaldb_cma_invasive_st2_ops2e.jsonl'
 
-# 数据集原采样间隔（秒）
+# 采样间隔 30 s
+# 数据集原采样间隔（秒）、实验设置采样间隔（秒）
 stime = 2
-
-# 实验设置采样间隔（秒）
-exp_stime = 30     # 降采样间隔
-
+exp_stime = 30
 # 按照15分钟预测5分钟计算预测点数
 seq_len = 30   # 预测窗口数据点数
 label_len = 5  # 预测窗口加入label数据的点数
 pred_len = 10  # 预测窗口数据点数
-s_win = 5      # 滑动窗口步长（点）
+s_win = 2      # 滑动窗口步长（点）
+
+# 采样间隔 2 s
+# # 数据集原采样间隔（秒）、实验设置采样间隔（秒）
+# stime = 2
+# exp_stime = 2
+# # 按照15分钟预测5分钟计算预测点数
+# seq_len = 450   # 预测窗口数据点数
+# label_len = 75  # 预测窗口加入label数据的点数
+# pred_len = 150  # 预测窗口数据点数
+# s_win = 450      # 滑动窗口步长（点）
+
 
 
 static_features = ['caseid', 'sex', 'age', 'bmi', 'time']
@@ -99,9 +108,10 @@ args=f"python run.py \
   --d_model 256 \
   --d_ff 256 \
   --itr 1 \
-  --batch_size 16 \
+  --learning_rate 0.0005 \
+  --batch_size 128 \
   --train_epochs 50 \
-  --num_workers 10 \
+  --num_workers 16 \
   --use_multi_gpu \
   --devices 0,1 \
   --inverse"

@@ -398,9 +398,10 @@ class VitalDBLoader_JSONL(Dataset):
     def __process_json_data(self, case_subset):
         
         sample_list = defaultdict(list)
+        valid_samples_indices = []
+        
         # for case in tqdm(case_subset[:1]):
         for case in tqdm(case_subset[:]):
-            
             # 处理时序变量
             case_sample_num = 0
             for feature in self.dynamic_features:
@@ -449,6 +450,37 @@ class VitalDBLoader_JSONL(Dataset):
             sample_list['seq_time_stamp_list'].extend([item[:self.seq_len] for item in timestamp_list])
             sample_list['pred_time_stamp_list'].extend([item[-self.pred_len:] for item in timestamp_list])
         
+        print(self.flag + ' before diff 60 :', len(sample_list[self.dynamic_features[0]]))
+        
+        # 检查每个样本是否有突变大于50的序列
+        valid_sample_list = defaultdict(list)
+        current_index = 0
+        total_samples = len(sample_list[next(iter(sample_list))])
+        
+        for i in range(total_samples):
+            valid_sample = True
+            
+            # 检查每个动态特征
+            for feature in self.dynamic_features:
+                if feature != 'prediction_maap' and feature != 'seq_time_stamp_list' and feature != 'pred_time_stamp_list':
+                    # 计算差分
+                    feature_diffs = np.abs(np.diff(sample_list[feature][i]))
+                    # 检查是否有突变大于50
+                    if np.any(feature_diffs > 60):
+                        valid_sample = False
+                        break
+            
+            # 如果样本有效，添加到有效样本列表
+            if valid_sample:
+                for key in sample_list:
+                    valid_sample_list[key].append(sample_list[key][i])
+                valid_samples_indices.append(current_index)
+            
+            current_index += 1
+        
+        sample_list = valid_sample_list
+        print(self.flag + ' after diff 60 :', len(sample_list[self.dynamic_features[0]]))
+        
         if self.scale and self.flag == 'train':
             print("Fitting scalers on training data...")
             for feature in self.static_features:
@@ -471,7 +503,6 @@ class VitalDBLoader_JSONL(Dataset):
                 if feature != 'seq_time_stamp_list' and feature != 'pred_time_stamp_list':
                     sample_list[feature] = self.scalers[feature].transform(np.array(sample_list[feature]))
         
-        print(self.flag, len(sample_list[self.dynamic_features[0]]))
         self.data = sample_list
 
     def __getitem__(self, index):

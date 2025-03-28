@@ -1,5 +1,5 @@
 import os
-
+from collections import defaultdict
 import numpy as np
 import torch
 import matplotlib.pyplot as plt
@@ -118,30 +118,3 @@ def adjustment(gt, pred):
 
 def cal_accuracy(y_pred, y_true):
     return np.mean(y_pred == y_true)
-
-
-def create_segment_list(ts_list, obs_win_len, pred_win_len, step_len, stime, exp_stime):
-   
-    # 数据集数据点采样点间隔与实验设置不同 ———> 需要降采样
-    if stime != exp_stime:
-        ts_list = ts_list[::exp_stime//stime]
-    
-    total_win_len = obs_win_len + pred_win_len
-    ts_array = np.array(ts_list)
-    total_length = len(ts_array)
-    
-    if total_length < total_win_len:
-        return []
-    
-    num_segments = (total_length - total_win_len) // step_len + 1
-    segments = []
-    
-    for i in range(num_segments):
-        start_idx = i * step_len
-        end_idx = start_idx + total_win_len
-        if end_idx <= total_length:
-            segment = ts_array[start_idx:end_idx]
-            segments.append(segment)
-    
-    return segments
-    

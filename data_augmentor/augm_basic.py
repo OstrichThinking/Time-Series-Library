@@ -23,6 +23,7 @@ class IOHDataAugmentor(object):
         self.y = np.array(y)
         return self.y
 
+
     # TODO 其他数据增强方法可能用到
     def _flatten_time_series(self, X):
         """将时间序列数据展平为二维"""

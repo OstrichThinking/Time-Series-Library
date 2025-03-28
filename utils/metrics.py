@@ -55,8 +55,8 @@ def ioh_classification_metric(pred, true, IOH_value=65, exp_stime=2):
     duration = 60 / exp_stime
     
     for i in range(len(pred)):
-        pred_labels.append(Check_If_IOH(pred[i], IOH_value, duration))
-        true_labels.append(Check_If_IOH(true[i], IOH_value, duration))
+        pred_labels.append(ground_truth_labeling(pred[i], len(pred[i])))
+        true_labels.append(pred_labeling(true[i], duration, len(true[i])))
     
     pred_labels = np.array(pred_labels)
     true_labels = np.array(true_labels)
@@ -112,3 +112,42 @@ def Check_If_IOH(time_series, IOH_value, duration):
             return True
     
     return False
+
+
+def ground_truth_labeling(MAP_actual, t, T_seq, theta_MAP=65):
+    
+    # from
+    # HMF: A Hybrid Multi-Factor Framework for Dynamic Intraoperative Hypotension Prediction
+    
+    J_actual = 0
+    L_actual = np.zeros(T_seq, dtype=int)
+
+    for i in range(T_seq - t + 1):
+        MAP_max = np.max(MAP_actual[i : i + t])
+        if MAP_max <= theta_MAP:
+            L_actual[i : i + t] = 1
+        
+        sum_actual = np.sum(L_actual[i : i + t])
+        if sum_actual > 0:
+            J_actual = 1
+
+    return J_actual
+
+def pred_labeling(MAP_pred, t, T_seq, theta_MAP=65):
+    
+    # from 
+    # HMF: A Hybrid Multi-Factor Framework for Dynamic Intraoperative Hypotension Prediction
+    
+    J_prediction = 0
+
+    for i in range(T_seq - t + 1):
+        sum_prediction = np.sum(MAP_pred[i : i + t] <= theta_MAP)
+        if sum_prediction > 0.8 * t:
+            J_prediction = 1
+
+    return  J_prediction
+    
+    
+    
+    
+    

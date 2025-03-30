@@ -170,3 +170,5 @@ environment.txt
 
 wandb/
 swanlog/
+.idea/
+.vscode/

@@ -356,6 +356,10 @@ class Exp_Long_Term_Forecast(Exp_Basic):
         print("|{:^20}|{:^20}|{:^20}|".format(FP, TN, '--'))
         print("+" + "-"*20 + "+" + "-"*20 + "+" + "-"*20 + "+")
         
+        print(f"MAE: {mae}, MSE: {mse}, RMSE: {rmse}, MAPE: {mape}, MSPE: {mspe}, "
+            f"AUC: {auc}, Accuracy: {accuracy}, Recall: {recall}, Precision: {precision}, "
+            f"Specificity: {specificity}, F1: {F1}, TP: {TP}, FP: {FP}, FN: {FN}, TN: {TN}")
+        
         time_now = time.time()
         print(f"Test completion time: {time.strftime('%Y年%m月%d日 %H:%M:%S', time.localtime(time_now))}")
         

@@ -41,7 +41,14 @@ class Exp_Long_Term_Forecast(Exp_Basic):
         return model_optim
 
     def _select_criterion(self):
-        criterion = nn.MSELoss()
+        if self.args.loss == 'MSE':
+            criterion = nn.MSELoss()
+        elif self.args.loss == 'MAE':
+            criterion = nn.L1Loss()
+        elif self.args.loss == 'Huber':
+            criterion = nn.HuberLoss(delta=0.5)
+        elif self.args.loss == 'SmoothL1Loss':
+            criterion = nn.SmoothL1Loss(beta=0.5)
         return criterion
  
 
@@ -322,9 +329,9 @@ class Exp_Long_Term_Forecast(Exp_Basic):
         mae, mse, rmse, mape, mspe = metric(preds, trues)
         print("波形预测性能比较:")
         print("+" + "-"*20 + "+" + "-"*20 + "+" + "-"*20 + "+")
-        print("|{:^20}|{:^20}|{:^20}|".format("MSE", "MAE", "DTW"))
+        print("|{:^20}|{:^20}|{:^20}|".format("MSE", "MAE", "RMSE"))
         print("+" + "-"*20 + "+" + "-"*20 + "+" + "-"*20 + "+")
-        print("|{:^20}|{:^20}|{:^20}|".format(np.around(mse, decimals=5), np.around(mae, 5), dtw))
+        print("|{:^20}|{:^20}|{:^20}|".format(np.around(mse, decimals=5), np.around(mae, 5), np.around(rmse, 5)))
         print("+" + "-"*20 + "+" + "-"*20 + "+" + "-"*20 + "+")
 
         auc, accuracy, recall, precision, specificity, F1, TP, FP, FN, TN = ioh_classification_metric(preds, trues, exp_stime=self.args.exp_stime)

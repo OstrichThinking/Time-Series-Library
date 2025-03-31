@@ -21,7 +21,7 @@ import sys
         - 学习率: 0.0001
     
     👋 实验后台启动命令
-        nohup python -u scripts/long_term_forecast/VitalDB_script/invasive_ops2e/TimeXer_nosurgicalF_cma.py > checkpoints/invasive_ops2e/TimeXer_nosurgicalF_cma.log 2>&1 &
+        nohup python -u scripts/long_term_forecast/VitalDB_script/invasive_ops2e/TimeXer_nosurgicalF_cma_oversamples.py > checkpoints/invasive_ops2e/TimeXer_nosurgicalF_cma_oversamples.log 2>&1 &
     
     🌞实验结果:
         - 测试集 (V100): 
@@ -30,12 +30,12 @@ import sys
 
 # os.chdir("/home/zhud/fist/ioh/Time-Series-Library/")
 os.chdir(os.getcwd())
-os.environ['CUDA_VISIBLE_DEVICES'] = '4,5'
+os.environ['CUDA_VISIBLE_DEVICES'] = '0,1,2'
 
 # 定义模型名称和路径
 model_name = 'TimeXer'
 task_name = 'long_term_forecast'
-model_id = 'TimeXer_nosurgicalF_cma'
+model_id = 'TimeXer_nosurgicalF_cma_oversamples'
 
 root_path = '/home/data/ioh/cma_ioh/invasive_ops2e/'
 # root_path = '/home/share/ioh/VitalDB_IOH/timeseries_by_caseids/cma/invasive_ops2e/'
@@ -50,6 +50,17 @@ seq_len = 30   # 预测窗口数据点数
 label_len = 5  # 预测窗口加入label数据的点数
 pred_len = 10  # 预测窗口数据点数
 s_win = 2      # 滑动窗口步长（点）
+
+# 采样间隔 2 s
+# # 数据集原采样间隔（秒）、实验设置采样间隔（秒）
+# stime = 2
+# exp_stime = 2
+# # 按照15分钟预测5分钟计算预测点数
+# seq_len = 450   # 预测窗口数据点数
+# label_len = 75  # 预测窗口加入label数据的点数
+# pred_len = 150  # 预测窗口数据点数
+# s_win = 450      # 滑动窗口步长（点）
+
 
 static_features = ['caseid', 'sex', 'age', 'bmi', 'time']
 dynamic_features = [
@@ -80,6 +91,7 @@ args=f"python run.py \
   --features MS \
   --static_features {static_features_str} \
   --dynamic_features {dynamic_features_str} \
+  --augment_method oversample_minority \
   --seq_len {seq_len} \
   --label_len {label_len} \
   --pred_len {pred_len} \
@@ -101,7 +113,7 @@ args=f"python run.py \
   --train_epochs 50 \
   --num_workers 16 \
   --use_multi_gpu \
-  --devices 0,1 \
+  --devices 0,1,2 \
   --inverse"
 
 

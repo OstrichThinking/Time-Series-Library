@@ -52,10 +52,10 @@ def ioh_classification_metric(pred, true, IOH_value=65, exp_stime=2):
     true_labels = []
 
     # 计算一分钟持续的点数
-    duration = 60 / exp_stime
+    duration = int(60 / exp_stime)
     
     for i in range(len(pred)):
-        pred_labels.append(ground_truth_labeling(pred[i], len(pred[i])))
+        pred_labels.append(ground_truth_labeling(pred[i], duration, len(pred[i])))
         true_labels.append(pred_labeling(true[i], duration, len(true[i])))
     
     pred_labels = np.array(pred_labels)

@@ -21,7 +21,7 @@ import sys
         - 学习率: 0.0001
     
     👋 实验后台启动命令
-        nohup python -u scripts/long_term_forecast/VitalDB_script/invasive_ops2e/TimeXer_nosurgicalF_cma_oversamples.py > checkpoints/invasive_ops2e/TimeXer_nosurgicalF_cma_oversamples.log 2>&1 &
+        nohup python -u scripts/long_term_forecast/VitalDB_script/invasive_ops2e/TimeXer_nosurgicalF_cma_oversamples.py > checkpoints/invasive_ops2e/TimeXer_nosurgicalF_cma_oversamples_8.log 2>&1 &
     
     🌞实验结果:
         - 测试集 (V100): 
@@ -30,7 +30,7 @@ import sys
 
 # os.chdir("/home/zhud/fist/ioh/Time-Series-Library/")
 os.chdir(os.getcwd())
-os.environ['CUDA_VISIBLE_DEVICES'] = '0,1,2'
+os.environ['CUDA_VISIBLE_DEVICES'] = '4,5'
 
 # 定义模型名称和路径
 model_name = 'TimeXer'
@@ -113,7 +113,7 @@ args=f"python run.py \
   --train_epochs 50 \
   --num_workers 16 \
   --use_multi_gpu \
-  --devices 0,1,2 \
+  --devices 0,1 \
   --inverse"
 
 

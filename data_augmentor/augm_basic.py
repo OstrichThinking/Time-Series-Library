@@ -15,7 +15,7 @@ class IOHDataAugmentor(object):
         }
 
     def _get_ioh_label(self, IOH_value=65, stime=20):
-        duration = 60 / stime
+        duration = int(60 / stime)
         prediction_maap = self.X['prediction_maap']
         y = []
         for i in range(len(prediction_maap)):   # len(prediction_maap) 为样本数量

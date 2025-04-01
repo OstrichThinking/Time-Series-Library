@@ -107,7 +107,7 @@ def convert_jsonl_to_sample_list(case_subset, flag,
     # check ioh lable
     lebel_list = []
     for i in range(len(sample_list['prediction_maap'])):
-        if Check_If_IOH(sample_list['prediction_maap'][i], 65, 60/exp_stime):
+        if Check_If_IOH(sample_list['prediction_maap'][i], 65, int(60/exp_stime)):
             lebel_list.append(1)
         else:
             lebel_list.append(0)

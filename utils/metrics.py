@@ -82,37 +82,21 @@ def ioh_classification_metric(pred, true, IOH_value=65, exp_stime=2):
     return auc, accuracy, recall, precision, specificity, F1, TP, FP, FN, TN
     
 
-def Check_If_IOH(time_series, IOH_value, duration):
-    """
-    Check if there is a period of intraoperative hypotension (IOH) in the time series.
+def Check_If_IOH(time_series, theta_MAP, duration):
+    
+    J_actual = False
+    L_actual = np.zeros(len(time_series), dtype=int)
 
-    Parameters:
-    - time_series (1D array-like): The blood pressure time series.
-    - srate: Sampling rate of the time series (samples per second).
-    - IOH_value: Threshold value for IOH (blood pressure below this is considered hypotensive).
-    - duration: duration in seconds that defines IOH (must stay below IOH_value for this period).
+    for i in range(len(time_series) - duration + 1):
+        MAP_max = np.max(time_series[i : i + duration])
+        if MAP_max <= theta_MAP:
+            L_actual[i : i + duration] = 1
+        
+        sum_actual = np.sum(L_actual[i : i + duration])
+        if sum_actual > 0:
+            J_actual = True
 
-    Returns:
-    - bool: True if IOH is detected, otherwise False.
-    """
-    # 将Duration转换为采样点数
-    duration_samples = int(duration)  # 将duration转换为整数
-    
-    # 如果时间序列长度小于duration_samples，不可能满足IOH条件，直接返回False
-    if len(time_series) < duration_samples:
-        return False
-    
-    # 创建一个布尔掩码数组，标记低于IOH阈值的点
-    below_threshold = time_series < IOH_value
-    
-    # 使用滑动窗口检查是否存在连续的duration_samples个值都低于IOH_value
-    for i in range(len(below_threshold) - duration_samples + 1):
-        # 检查当前滑动窗口内的所有值是否都为True（即都低于IOH_value）
-        if np.all(below_threshold[i:i + duration_samples]):
-            return True
-    
-    return False
-
+    return J_actual
 
 def ground_truth_labeling(MAP_actual, t, T_seq, theta_MAP=65):
     

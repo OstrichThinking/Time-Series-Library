@@ -4,7 +4,7 @@ import swanlab
 from models import Autoformer, Transformer, TimesNet, Nonstationary_Transformer, DLinear, FEDformer, \
     Informer, LightTS, Reformer, ETSformer, Pyraformer, PatchTST, MICN, Crossformer, FiLM, iTransformer, \
     Koopa, TiDE, FreTS, TimeMixer, TSMixer, SegRNN, MambaSimple, TemporalFusionTransformer, SCINet, PAttn, TimeXer, \
-    WPMixer, MultiPatchFormer, CMA, AHCformer
+    WPMixer, MultiPatchFormer, CMA, AHCformer, AHCformer_v2
 
 
 class Exp_Basic(object):
@@ -18,7 +18,6 @@ class Exp_Basic(object):
         )
         
         self.model_dict = {
-            'AHCformer': AHCformer,
             'TimesNet': TimesNet,
             'Autoformer': Autoformer,
             'Transformer': Transformer,
@@ -48,7 +47,9 @@ class Exp_Basic(object):
             'TimeXer': TimeXer,
             'WPMixer': WPMixer,
             'MultiPatchFormer': MultiPatchFormer,
-            'CMA': CMA
+            'CMA': CMA,
+            'AHCformer': AHCformer,
+            'AHCformer_2': AHCformer_v2,
         }
         if args.model == 'Mamba':
             print('Please make sure you have successfully installed mamba_ssm')

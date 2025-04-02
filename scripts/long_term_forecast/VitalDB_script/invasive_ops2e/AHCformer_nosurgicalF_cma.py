@@ -8,7 +8,7 @@ import sys
         - 450个点预测150个点
     
     🏠数据集：
-        - AHCformer_invasive_ops2e_st2_10_nosurgicalF_cma
+        - AHCformer_nosurgicalF_cma
         - (残差+滤波)*2 + 均值填充
         - /home/share/ioh/VitalDB_IOH/timeseries_by_caseids/cma/invasive_ops2e/dataset_vitaldb_cma_invasive_st2_ops2e.jsonl
 
@@ -23,37 +23,11 @@ import sys
         - 学习率: 0.0001
     
     👋 实验后台启动命令
-        nohup python -u scripts/long_term_forecast/VitalDB_script/AHCformer_invasive_ops2e_st2_10_nosurgicalF_cma.py > checkpoints/AHCformer_invasive_ops2e_st2_10_nosurgicalF_cma.log 2>&1 &
+        nohup python -u scripts/long_term_forecast/VitalDB_script/invasive_ops2e/AHCformer_nosurgicalF_cma.py > checkpoints/invasive_ops2e/AHCformer_nosurgicalF_cma.log 2>&1 &
     
     🌞实验结果:
         - 测试集 (V100): 
         波形预测性能比较:
-        +--------------------+--------------------+--------------------+
-        |        MSE         |        MAE         |        DTW         |
-        +--------------------+--------------------+--------------------+
-        |  70.8360824584961  | 4.866159915924072  |   Not calculated   |
-        +--------------------+--------------------+--------------------+
-        分类性能比较:
-        +--------------------+--------------------+--------------------+
-        |        AUC         |      Accuracy      |       Recall       |
-        +--------------------+--------------------+--------------------+
-        |      0.82122       |      0.94562       |      0.66109       |
-        +--------------------+--------------------+--------------------+
-        |     Precision      |    Specificity     |         F1         |
-        +--------------------+--------------------+--------------------+
-        |      0.81654       |      0.98135       |      0.73064       |
-        +--------------------+--------------------+--------------------+
-        混淆矩阵:
-        +--------------------+--------------------+--------------------+
-        |         TP         |         FN         |         --         |
-        +--------------------+--------------------+--------------------+
-        |        316         |        162         |         --         |
-        +--------------------+--------------------+--------------------+
-        |         FP         |         TN         |         --         |
-        +--------------------+--------------------+--------------------+
-        |         71         |        3736        |         --         |
-        +--------------------+--------------------+--------------------+
-        
      
 """
 
@@ -66,7 +40,7 @@ os.environ['CUDA_VISIBLE_DEVICES'] = '0,1,2,3'
 # 定义模型名称和路径
 model_name = 'AHCformer'
 task_name = 'long_term_forecast'
-model_id = 'AHCformer_invasive_ops2e_st2_10_nosurgicalF_cma'
+model_id = 'AHCformer_nosurgicalF_cma'
 
 
 # root_path = '/home/data/ioh/cma_ioh/invasive_ops2e/'

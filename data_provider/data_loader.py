@@ -449,8 +449,12 @@ class VitalDBLoader_JSONL(Dataset):
         time_pred = self.data['pred_time_stamp_list'][index]
         seq_y_mark = np.concatenate([time_label[:, np.newaxis], time_pred[:, np.newaxis]], axis=0)
         
+        # seq_x:
+        # sex、age、bmi
+        # Solar8000/BT、Solar8000/HR、Solar8000/ART_DBP、Solar8000/ART_MBP
+        
+         
         return seq_x, seq_y, seq_x_mark, seq_y_mark
-    
     def __len__(self):
         return len(self.data[self.dynamic_features[0]])
         # return len(self.data)

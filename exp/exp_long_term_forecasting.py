@@ -12,6 +12,7 @@ import numpy as np
 from utils.dtw_metric import dtw, accelerated_dtw
 from utils.augmentation import run_augmentation, run_augmentation_single
 import random
+import csv
 
 
 warnings.filterwarnings('ignore')
@@ -48,9 +49,8 @@ class Exp_Long_Term_Forecast(Exp_Basic):
         elif self.args.loss == 'Huber':
             criterion = nn.HuberLoss(delta=0.5)
         elif self.args.loss == 'SmoothL1Loss':
-            criterion = nn.SmoothL1Loss(beta=0.5)
+            criterion = nn.SmoothL1Loss(beta=5)
         return criterion
- 
 
     def vali(self, vali_data, vali_loader, criterion):
         total_loss = []
@@ -359,6 +359,27 @@ class Exp_Long_Term_Forecast(Exp_Basic):
         print(f"MAE: {mae}, MSE: {mse}, RMSE: {rmse}, MAPE: {mape}, MSPE: {mspe}, "
             f"AUC: {auc}, Accuracy: {accuracy}, Recall: {recall}, Precision: {precision}, "
             f"Specificity: {specificity}, F1: {F1}, TP: {TP}, FP: {FP}, FN: {FN}, TN: {TN}")
+        
+
+        
+        dataset_name = os.path.splitext(self.args.data_path)[0]
+        csv_path = './results/' + dataset_name + '/' + self.args.model_id + '.csv'
+        os.makedirs(os.path.dirname(csv_path), exist_ok=True)
+        
+        row = [
+            mae.item(), mse.item(), rmse.item(), mape.item(), mspe.item(),
+            auc.item(), accuracy.item(), recall.item(), precision.item(), 
+            specificity.item(), F1.item(), TP.item(), FP.item(), FN.item(), TN.item()
+        ]
+        # Write to CSV file
+        with open(csv_path, 'w', newline='') as file:
+            writer = csv.writer(file)
+            # Write header
+            writer.writerow(['MAE', 'MSE', 'RMSE', 'MAPE', 'MSPE', 
+                            'AUC', 'Accuracy', 'Recall', 'Precision', 'Specificity', 
+                            'F1', 'TP', 'FP', 'FN', 'TN'])
+            # Write data row
+            writer.writerow(row)
         
         time_now = time.time()
         print(f"Test completion time: {time.strftime('%Y年%m月%d日 %H:%M:%S', time.localtime(time_now))}")
